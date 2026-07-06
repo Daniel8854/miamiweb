@@ -86,9 +86,12 @@
   }
   /* Atmósfera: manchas de color muy suaves que respiran despacio detrás de
      todo el contenido, cubriendo bien las esquinas para que no se sienta
-     plano/blanco en pantallas anchas. Le dan profundidad sin distraer. */
+     plano/blanco en pantallas anchas. Le dan profundidad sin distraer.
+     Se anima con transform (no background-position): así la GPU solo
+     mueve la capa ya pintada en vez de repintar el blur en cada frame,
+     que es lo que hacía la página lenta en celular. */
   body::before{
-    content:''; position:fixed; inset:-12% -8%; z-index:0; pointer-events:none;
+    content:''; position:fixed; inset:-20% -15%; z-index:0; pointer-events:none;
     background:
       radial-gradient(closest-side, color-mix(in srgb, var(--acento) 24%, transparent), transparent 70%) 14% 16%/48% 44% no-repeat,
       radial-gradient(closest-side, color-mix(in srgb, var(--oro) 18%, transparent), transparent 70%) 88% 12%/42% 40% no-repeat,
@@ -96,14 +99,16 @@
       radial-gradient(closest-side, color-mix(in srgb, var(--rosa) 16%, transparent), transparent 70%) 10% 86%/42% 38% no-repeat,
       radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 12%, transparent), transparent 75%) 50% 50%/56% 52% no-repeat;
     filter:blur(64px); opacity:.72;
-    animation:derivaAmbiente 42s ease-in-out infinite;
+    will-change:transform;
+    animation:derivaAmbiente 46s ease-in-out infinite;
     transition:opacity var(--transicion);
   }
   [data-theme="night"] body::before{ opacity:.5; }
   @keyframes derivaAmbiente{
-    0%,100%{ background-position:14% 16%, 88% 12%, 90% 88%, 10% 86%, 50% 50%; }
-    50%{ background-position:22% 26%, 80% 20%, 80% 78%, 18% 76%, 56% 44%; }
+    0%,100%{ transform:translate3d(0,0,0); }
+    50%{ transform:translate3d(3%,-2.5%,0); }
   }
+  @media (prefers-reduced-motion:reduce){ body::before{ animation:none; } }
   .marco{
     max-width:620px; margin:0 auto; min-height:100vh; position:relative; z-index:1;
     transition:background var(--transicion);
