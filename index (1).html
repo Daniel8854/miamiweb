@@ -1,0 +1,990 @@
+git push<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MIAMI Gastrobar — Menú</title>
+<meta name="description" content="Menú digital de MIAMI Gastrobar — Café · Gastrobar · Disco. Buenaventura.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@1,9..144,500;1,9..144,600&display=swap" rel="stylesheet">
+
+<!--
+  ============================================================
+  MENÚ DIGITAL — MIAMI GASTROBAR
+  ============================================================
+  CÓMO FUNCIONA LA DATA:
+  · El menú pinta al instante con los datos embebidos (MENU_LOCAL,
+    al final del <script>). Es una copia de respaldo del menú.
+  · Al mismo tiempo lee la hoja de Google Sheets (SHEET_URL). Si lo
+    logra, actualiza el menú en silencio. Si no, no pasa nada: el
+    cliente nunca ve un error, queda la copia local.
+  · IMPORTANTE: la hoja de Google Sheets debe estar compartida como
+    "Cualquier persona con el vínculo puede VER". Para usar otra hoja,
+    cambia SHEET_ID más abajo.
+
+  COLUMNAS DE LA HOJA: categoria | nombre | descripcion | precio
+  Opcionales:
+  · imagen_url — link directo a la foto del producto. Si está vacía,
+    se muestra un marcador de color con el ícono de la categoría.
+    OJO: los links de Discord (media.discordapp.net) EXPIRAN en ~24h.
+    Para fotos permanentes usa un hosting estable (imgur, imgbb, o
+    súbelas al repo). Si un link expira, se ve el marcador de color.
+  · etiquetas — valores separados por espacio: favorito, nuevo,
+    promocion. Activa los filtros de arriba automáticamente.
+  El orden de categorías y platos respeta el orden de las filas.
+
+  EL LOGO: logo-miami.jpeg debe ir en la misma carpeta que este archivo.
+  Aunque el archivo tenga fondo blanco, el CSS lo funde con el fondo
+  (día) y lo invierte a blanco (noche): se ve sin fondo siempre.
+  ============================================================
+-->
+
+<style>
+  :root{
+    /* ---- DÍA: luz de costa, crema y coral ---- */
+    --fondo:#FAF5EC;
+    --superficie:#FFFFFF;
+    --superficie-2:#F1EADA;
+    --tinta:#161F1C;
+    --tinta-suave:#5F6E67;
+    --acento:#FF5A3C;          /* coral Miami */
+    --acento-2:#00A5A0;        /* turquesa */
+    --oro:#DFA000;
+    --rosa:#E8467C;
+    --linea:rgba(22,31,28,.10);
+    --sombra:0 12px 32px -14px rgba(22,31,28,.22);
+    --glow:none;
+    --transicion:650ms cubic-bezier(.22,.61,.36,1);
+  }
+  [data-theme="night"]{
+    /* ---- NOCHE: Miami Vice, neón sobre azul profundo ---- */
+    --fondo:#0A0E1A;
+    --superficie:#121829;
+    --superficie-2:#0D1220;
+    --tinta:#F4F1E8;
+    --tinta-suave:#93A0B4;
+    --acento:#FF4D9D;          /* rosa neón */
+    --acento-2:#26E5D8;        /* cian neón */
+    --oro:#FFD24D;
+    --rosa:#FF4D9D;
+    --linea:rgba(244,241,232,.12);
+    --sombra:0 14px 44px -12px rgba(0,0,0,.6);
+    --glow:0 0 18px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--fondo); color:var(--tinta);
+    font-family:'Manrope',sans-serif;
+    transition:background var(--transicion), color var(--transicion);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .marco{
+    max-width:560px; margin:0 auto; min-height:100vh; position:relative;
+    background:var(--fondo);
+    box-shadow:0 0 60px rgba(0,0,0,.08);
+    transition:background var(--transicion);
+  }
+
+  /* ================= HERO ================= */
+  /* El hero necesita fondo propio: el logo usa mix-blend-mode y, con
+     isolation, solo se funde con lo que está DENTRO del hero. */
+  .hero{
+    position:relative; padding:30px 24px 18px; text-align:center;
+    overflow:hidden; isolation:isolate;
+    background:var(--fondo); transition:background var(--transicion);
+  }
+  .hero-glow{
+    position:absolute; inset:-45% -25% auto -25%; height:300px; z-index:-1;
+    background:
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento) 50%, transparent), transparent 70%) 15% 30%/55% 60% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 50%, transparent), transparent 70%) 85% 40%/50% 55% no-repeat;
+    filter:blur(34px); opacity:.5; transition:opacity var(--transicion);
+  }
+  [data-theme="night"] .hero-glow{ opacity:.38; }
+
+  /* Logo con fondo blanco de origen:
+     Día → multiply funde el blanco con el crema (queda el logo oscuro).
+     Noche → invert lo vuelve blanco y screen borra el fondo negro resultante. */
+  .logo-img{
+    width:min(240px,64%); display:block; margin:0 auto;
+    mix-blend-mode:multiply;
+    /* brightness empuja el fondo casi-blanco del JPEG a blanco puro
+       para que multiply/screen lo borren por completo */
+    filter:brightness(1.14) contrast(1.05);
+    transition:filter var(--transicion);
+  }
+  [data-theme="night"] .logo-img{
+    /* sin drop-shadow: el JPEG es rectangular y el halo delataría el borde */
+    filter:brightness(1.14) contrast(1.05) invert(1);
+    mix-blend-mode:screen;
+  }
+  .logo-texto{ display:none; font-family:'Bebas Neue',sans-serif; font-size:4rem; letter-spacing:.04em; margin:0; line-height:1; }
+
+  .hero .sub{
+    margin:8px 0 0; color:var(--tinta-suave); font-size:.8rem;
+    font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+  }
+  .hero .sub b{ color:var(--acento); }
+  .hero-linea{
+    margin:12px 0 0; font-family:'Fraunces',serif; font-style:italic; font-weight:500;
+    font-size:1.02rem; color:var(--acento);
+  }
+  [data-theme="night"] .hero-linea{ text-shadow:var(--glow) color-mix(in srgb, var(--acento) 45%, transparent); }
+
+  .estado-abierto{
+    display:inline-flex; align-items:center; gap:7px; margin-top:12px;
+    font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    background:var(--superficie); border:1px solid var(--linea); border-radius:999px;
+    padding:7px 14px; color:var(--tinta-suave);
+  }
+  .estado-abierto .punto{ width:8px; height:8px; border-radius:50%; background:#9aa5a0; }
+  .estado-abierto.si .punto{ background:#2ECC71; box-shadow:0 0 8px #2ECC71; }
+  .estado-abierto.si{ color:var(--tinta); }
+
+  /* Accesos rápidos de contacto en el hero */
+  .contactos{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:14px; }
+  .contacto{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.74rem; font-weight:800; padding:9px 14px; border-radius:999px;
+    background:var(--superficie); border:1px solid var(--linea); color:var(--tinta);
+    text-decoration:none; box-shadow:var(--sombra); transition:transform 150ms;
+  }
+  .contacto:active{ transform:scale(.94); }
+  .contacto.wa{ border-color:color-mix(in srgb, #25D366 55%, transparent); }
+
+  .ciclo{
+    position:absolute; top:16px; right:16px; z-index:2;
+    display:flex; align-items:center; gap:3px;
+    background:var(--superficie); border:1px solid var(--linea); border-radius:999px; padding:4px;
+    box-shadow:var(--sombra); cursor:pointer; user-select:none;
+  }
+  .ciclo-etq{
+    font-size:.6rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+    padding:6px 10px; border-radius:999px; color:var(--tinta-suave);
+    transition:color 300ms, background 300ms;
+  }
+  [data-theme="day"] .ciclo-etq[data-modo="dia"]{ background:var(--oro); color:#fff; }
+  [data-theme="night"] .ciclo-etq[data-modo="noche"]{ background:var(--acento-2); color:#08101E; }
+
+  /* ================= CONTROLES STICKY ================= */
+  .controles{
+    position:sticky; top:0; z-index:20;
+    background:color-mix(in srgb, var(--fondo) 90%, transparent);
+    backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+    padding:12px 24px 0; border-bottom:1px solid var(--linea);
+    transition:background var(--transicion);
+  }
+  .buscador{
+    display:flex; align-items:center; gap:10px;
+    background:var(--superficie); border:1px solid var(--linea); border-radius:16px; padding:11px 14px;
+  }
+  .buscador svg{ flex:none; opacity:.5; }
+  .buscador input{
+    border:none; outline:none; background:transparent; width:100%;
+    font-family:'Manrope',sans-serif; font-size:.95rem; color:var(--tinta);
+  }
+  .buscador input::placeholder{ color:var(--tinta-suave); }
+  .chips{ display:none; gap:8px; overflow-x:auto; margin-top:10px; scrollbar-width:none; }
+  .chips.visible{ display:flex; }
+  .chips::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:none; font-size:.78rem; font-weight:700; padding:7px 13px; border-radius:999px;
+    border:1px solid var(--linea); background:var(--superficie); color:var(--tinta-suave);
+    cursor:pointer; white-space:nowrap; transition:all 200ms; text-transform:capitalize;
+  }
+  .chip.activo{ background:var(--tinta); color:var(--fondo); border-color:var(--tinta); }
+  .categorias{ display:flex; gap:4px; overflow-x:auto; margin-top:8px; padding-bottom:0; scrollbar-width:none; }
+  .categorias::-webkit-scrollbar{ display:none; }
+  .cat-pill{
+    flex:none; display:flex; align-items:center; gap:6px;
+    font-size:.84rem; font-weight:700; padding:10px 12px 12px;
+    color:var(--tinta-suave); border-bottom:2.5px solid transparent;
+    cursor:pointer; text-decoration:none; white-space:nowrap;
+    transition:color 200ms, border-color 200ms;
+  }
+  .cat-pill .ico{ font-size:1rem; line-height:1; }
+  .cat-pill.activa{ color:var(--tinta); border-color:var(--acento); }
+
+  /* ================= SECCIONES ================= */
+  main{ padding:4px 24px 140px; }
+  .seccion{ padding-top:34px; scroll-margin-top:150px; }
+  .cabecera-cat{ display:flex; align-items:baseline; gap:10px; }
+  .cabecera-cat .ico{ font-size:1.5rem; }
+  .seccion h2{
+    font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.05em;
+    font-size:2rem; margin:0; line-height:1;
+  }
+  [data-theme="night"] .seccion h2{ text-shadow:var(--glow) color-mix(in srgb, var(--acento-2) 30%, transparent); }
+  .desc-cat{ margin:6px 0 6px; color:var(--tinta-suave); font-size:.86rem; }
+
+  .plato{
+    display:grid; grid-template-columns:76px 1fr; gap:14px; align-items:start;
+    padding:15px 0; border-bottom:1px solid var(--linea);
+    opacity:0; transform:translateY(12px);
+    transition:opacity 500ms ease, transform 500ms ease;
+  }
+  .plato.revelado{ opacity:1; transform:none; }
+  .plato.oculto{ display:none; }
+  /* La casilla de la foto tiene fondo del TEMA (crema de día, oscuro de
+     noche). Así, si la imagen es transparente (sin fondo propio), lo que
+     se ve detrás es el color de la página y cambia con día/noche.
+     Si la imagen trae su propio fondo, lo tapa por completo y no importa. */
+  .foto{
+    width:76px; height:76px; border-radius:16px; overflow:hidden; flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:1.8rem;
+    background:var(--superficie-2);
+    transition:background var(--transicion);
+  }
+  /* contain = la foto se adapta completa a la casilla sin recortarse ni
+     estirar el producto; el tamaño de la fila no depende de la imagen. */
+  .foto img{ width:100%; height:100%; object-fit:contain; display:block; }
+  /* Solo el marcador de posición (sin foto) lleva el degradado de color */
+  .foto.placeholder{ background-image:var(--ph); }
+  .plato-titulo{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+  .plato-titulo h3{ font-weight:800; font-size:1rem; margin:0; line-height:1.35; }
+  .puntos{
+    flex:1; border-bottom:2px dotted color-mix(in srgb, var(--tinta) 22%, transparent);
+    transform:translateY(-4px); min-width:14px;
+  }
+  .precio{
+    font-weight:800; font-size:.95rem; flex:none; color:var(--acento);
+    white-space:nowrap; font-variant-numeric:tabular-nums;
+  }
+  .plato-desc{ margin:5px 0 0; font-size:.85rem; color:var(--tinta-suave); line-height:1.5; max-width:46ch; }
+  .etiquetas{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+  .etq{ font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:3px 9px; border-radius:999px; }
+  .etq.favorito{ background:color-mix(in srgb, var(--oro) 22%, transparent); color:var(--oro); }
+  .etq.promocion{ background:color-mix(in srgb, var(--acento) 18%, transparent); color:var(--acento); }
+  .etq.nuevo{ background:color-mix(in srgb, var(--acento-2) 18%, transparent); color:var(--acento-2); }
+
+  /* Promociones: tarjetas destacadas */
+  .seccion.destacada .plato{
+    border:1.5px solid color-mix(in srgb, var(--acento) 45%, transparent);
+    border-radius:20px; padding:16px 18px; margin-bottom:12px;
+    background:linear-gradient(135deg, color-mix(in srgb, var(--acento) 8%, var(--superficie)), var(--superficie));
+    box-shadow:var(--sombra);
+  }
+  [data-theme="night"] .seccion.destacada .plato{
+    box-shadow:0 0 24px -6px color-mix(in srgb, var(--acento) 35%, transparent);
+  }
+  .seccion.destacada .plato-titulo h3{ font-size:1.08rem; }
+
+  .estado{
+    text-align:center; padding:56px 20px; color:var(--tinta-suave);
+    font-family:'Fraunces',serif; font-style:italic; font-size:1.05rem;
+  }
+
+  /* ================= ELEGÍ POR MÍ ================= */
+  .fab{
+    position:fixed; right:18px; bottom:20px; z-index:30;
+    background:linear-gradient(120deg, var(--acento), color-mix(in srgb, var(--acento) 60%, var(--rosa)));
+    color:#fff; border:none; border-radius:999px; padding:15px 21px;
+    font-family:'Manrope',sans-serif; font-weight:800; font-size:.86rem; letter-spacing:.01em;
+    display:flex; align-items:center; gap:8px;
+    box-shadow:0 14px 28px -8px color-mix(in srgb, var(--acento) 70%, #000);
+    cursor:pointer; transition:transform 200ms;
+  }
+  .fab:active{ transform:scale(.95); }
+  @keyframes latido{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.05); } }
+  .fab{ animation:latido 2.8s ease-in-out infinite; }
+  @media (min-width:600px){ .fab{ right:calc(50% - 280px + 18px); } }
+
+  /* Botón subir arriba */
+  .subir{
+    position:fixed; left:18px; bottom:20px; z-index:30;
+    width:46px; height:46px; border-radius:50%;
+    background:var(--superficie); color:var(--tinta); border:1px solid var(--linea);
+    box-shadow:var(--sombra); display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:0; pointer-events:none; transform:translateY(10px);
+    transition:opacity 250ms, transform 250ms;
+  }
+  .subir.visible{ opacity:1; pointer-events:auto; transform:none; }
+  @media (min-width:600px){ .subir{ left:calc(50% - 280px + 18px); } }
+
+  /* Iconos de categoría con vida */
+  .cat-pill .ico, .cabecera-cat .ico{ display:inline-block; }
+  @keyframes meneo{ 25%{ transform:rotate(-12deg); } 75%{ transform:rotate(12deg); } }
+  .cat-pill:hover .ico, .cat-pill.activa .ico{ animation:meneo .5s ease; }
+
+  /* Toast de confirmación */
+  .toast{
+    position:fixed; bottom:92px; left:50%; z-index:50;
+    transform:translateX(-50%) translateY(12px);
+    background:var(--tinta); color:var(--fondo);
+    padding:12px 20px; border-radius:999px; font-weight:800; font-size:.86rem;
+    box-shadow:var(--sombra); opacity:0; pointer-events:none;
+    transition:opacity 250ms, transform 250ms;
+  }
+  .toast.visible{ opacity:1; transform:translateX(-50%); }
+
+  .modal-fondo{
+    position:fixed; inset:0; background:rgba(6,10,16,.6); backdrop-filter:blur(5px);
+    display:flex; align-items:flex-end; justify-content:center; z-index:40;
+    opacity:0; pointer-events:none; transition:opacity 250ms;
+  }
+  .modal-fondo.abierto{ opacity:1; pointer-events:auto; }
+  .modal{
+    width:100%; max-width:560px; background:var(--superficie);
+    border-radius:28px 28px 0 0; padding:26px 24px calc(30px + env(safe-area-inset-bottom));
+    transform:translateY(40px); transition:transform 320ms cubic-bezier(.22,.61,.36,1);
+    box-shadow:0 -20px 50px rgba(0,0,0,.3);
+  }
+  .modal-fondo.abierto .modal{ transform:translateY(0); }
+  .modal-eyebrow{ font-size:.7rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--acento); }
+  .modal h3{ font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.03em; font-size:2rem; margin:8px 0 6px; line-height:1.05; min-height:1em; }
+  .modal p{ color:var(--tinta-suave); font-size:.92rem; margin:0 0 20px; line-height:1.55; }
+  .modal .precio-modal{ font-weight:800; color:var(--acento); }
+  .modal-botones{ display:flex; gap:10px; flex-wrap:wrap; }
+  .btn{
+    flex:1 1 44%; text-align:center; padding:14px 12px; border-radius:15px; font-weight:800; font-size:.9rem;
+    cursor:pointer; border:1px solid var(--linea); user-select:none; transition:transform 150ms;
+  }
+  .btn:active{ transform:scale(.97); }
+  .btn.primario{ background:var(--tinta); color:var(--fondo); border-color:var(--tinta); }
+  .btn.secundario{ background:transparent; color:var(--tinta); }
+  .btn.opcion{ background:var(--superficie-2); color:var(--tinta); flex:1 1 100%; text-align:left; padding:15px 16px; }
+
+  /* ================= FOOTER ================= */
+  footer{ padding:34px 24px 44px; text-align:center; color:var(--tinta-suave); font-size:.8rem; border-top:1px solid var(--linea); }
+  .footer-marca{ font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:.06em; color:var(--tinta); margin:0 0 2px; }
+  .footer-tag{ margin:0 0 18px; font-size:.74rem; letter-spacing:.18em; text-transform:uppercase; font-weight:700; }
+  .horarios{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:0 0 20px; }
+  .horario{
+    background:var(--superficie); border:1px solid var(--linea); border-radius:16px;
+    padding:12px 16px; line-height:1.6; min-width:210px; text-align:center;
+  }
+  .horario-titulo{
+    display:block; font-weight:800; text-transform:uppercase; letter-spacing:.1em;
+    font-size:.62rem; color:var(--acento); margin-bottom:4px;
+  }
+  .acciones{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:18px; }
+  .accion{
+    display:inline-flex; align-items:center; gap:7px; padding:12px 18px; border-radius:999px;
+    font-weight:800; font-size:.8rem; text-decoration:none; transition:transform 150ms;
+  }
+  .accion:active{ transform:scale(.96); }
+  .accion.principal{ background:#25D366; color:#fff; }
+  .accion.borde{ background:var(--superficie); color:var(--tinta); border:1px solid var(--linea); }
+  .direccion{ margin:4px 0 0; }
+
+  @media (prefers-reduced-motion:reduce){
+    *{ transition:none !important; scroll-behavior:auto !important; }
+    .plato{ opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body data-theme="day">
+<div class="marco">
+
+  <!-- ================= HERO ================= -->
+  <header class="hero">
+    <div class="hero-glow"></div>
+    <div class="ciclo" id="toggleCiclo" role="button" aria-label="Cambiar entre modo día y noche">
+      <span class="ciclo-etq" data-modo="dia">☀ Día</span>
+      <span class="ciclo-etq" data-modo="noche">☾ Noche</span>
+    </div>
+    <img src="logo-miami.jpeg" alt="MIAMI Gastrobar" class="logo-img"
+         onerror="this.style.display='none';document.getElementById('logoTexto').style.display='block'">
+    <h1 class="logo-texto" id="logoTexto">MIAMI</h1>
+    <p class="sub">Café <b>·</b> Gastrobar <b>·</b> Disco</p>
+    <p class="hero-linea" id="fraseHero">La tarde pide café y antojos.</p>
+    <div class="estado-abierto" id="estadoAbierto"><span class="punto"></span><span id="estadoTexto">…</span></div>
+    <div class="contactos">
+      <a class="contacto wa" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener">🛵 Domicilio</a>
+      <a class="contacto wa" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener">📅 Reservas</a>
+      <a class="contacto" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener">📸 Instagram</a>
+      <a class="contacto" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener">📍 Mapa</a>
+    </div>
+  </header>
+
+  <!-- ================= CONTROLES ================= -->
+  <div class="controles">
+    <div class="buscador">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="buscarInput" placeholder="Buscar un plato o bebida…" aria-label="Buscar en el menú">
+    </div>
+    <div class="chips" id="filtrosChips"></div>
+    <nav class="categorias" id="navCategorias" aria-label="Categorías"></nav>
+  </div>
+
+  <main id="contenedorPlatos">
+    <p class="estado" id="mensajeEstado">Preparando el menú…</p>
+  </main>
+
+  <!-- ================= ELEGÍ POR MÍ ================= -->
+  <button class="fab" id="botonRuleta" aria-label="Elegí por mí: sugerencia al azar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.4" fill="currentColor" stroke="none"/></svg>
+    Elegí por mí
+  </button>
+
+  <button class="subir" id="botonSubir" aria-label="Volver arriba">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <div class="toast" id="toast">¡Buena elección! 🌴</div>
+
+  <div class="modal-fondo" id="modalFondo" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-eyebrow" id="modalEyebrow">Elegí por mí</div>
+      <h3 id="modalTitulo">¿Qué se te antoja?</h3>
+      <p id="modalDesc"></p>
+      <div class="modal-botones" id="modalBotones"></div>
+    </div>
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer>
+    <p class="footer-marca">MIAMI</p>
+    <p class="footer-tag">Café · Gastrobar · Disco — Buenaventura</p>
+    <div class="horarios">
+      <div class="horario">
+        <span class="horario-titulo">Lunes a jueves</span>
+        Abierto desde las 3pm<br>
+        Cocina hasta las 10pm · Barra hasta las 12am
+      </div>
+      <div class="horario">
+        <span class="horario-titulo">Viernes a domingo</span>
+        Abierto desde las 3pm<br>
+        Cocina hasta las 11pm · Barra hasta las 2am
+      </div>
+    </div>
+    <div class="acciones">
+      <a class="accion principal" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener">🛵 Domicilio</a>
+      <a class="accion principal" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener">📅 Reservas</a>
+      <a class="accion borde" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener">📸 Instagram</a>
+      <a class="accion borde" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener">📍 Cómo llegar</a>
+    </div>
+    <p class="direccion">Cl. 1 #6-2, Buenaventura, Valle del Cauca</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+
+/* ============ FUENTE DE DATOS ============ */
+// Google Sheets publicado como CSV. La hoja debe estar compartida como
+// "Cualquier persona con el vínculo puede ver".
+// Para cambiar de hoja: reemplaza SHEET_ID por el id de la nueva hoja
+// (el tramo entre /d/ y /edit en la URL de tu Google Sheets).
+const SHEET_ID = "1XfUtVJIsIkp2E2jF1Ascya7xqtbvS007EfLRglDBLto";
+const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+
+/* ============ ICONOS Y DESCRIPCIONES POR CATEGORÍA ============ */
+// Si en el Excel aparece una categoría nueva, sale igual (con 🍽 por defecto).
+const CATEGORIA_META = {
+  'promociones':     { ico:'🔥', desc:'Combos pensados para la mesa entera.' },
+  'desgranados':     { ico:'🌽', desc:'Maíz desgranado con todo lo bueno encima.' },
+  'salchipapas':     { ico:'🍟', desc:'El clásico que nunca falla.' },
+  'perras y perros': { ico:'🌭', desc:'Al estilo de la casa, bien cargados.' },
+  'nachos':          { ico:'🧀', desc:'Para meter la mano al centro.' },
+  'picadas':         { ico:'🥩', desc:'Proteína de sobra, para compartir.' },
+  'sodas miami':     { ico:'🥤', desc:'Sodas artesanales firmadas por la casa.' },
+  'café':            { ico:'☕', desc:'Extracción espresso, tarde de café.' },
+  'bebidas':         { ico:'🧊', desc:'Frías y refrescantes.' },
+  'jugos naturales': { ico:'🍹', desc:'Fruta de verdad, en agua o en leche.' },
+  'shots':           { ico:'🥃', desc:'Cortos, intensos y de autor. Modo fiesta.' },
+  'cocteles':        { ico:'🍸', desc:'Firmados por la barra de MIAMI.' },
+  'cervezas':        { ico:'🍺', desc:'Bien frías, siempre.' },
+  'postres':         { ico:'🍰', desc:'El cierre dulce.' }
+};
+const ICONO_DEFECTO = '🍽';
+
+/* ============ ESTADO ============ */
+let platosData = [];
+const filtrosActivos = new Set();
+
+/* ============ TEMA DÍA / NOCHE ============ */
+const body = document.body;
+const fraseHero = document.getElementById('fraseHero');
+const FRASES_DIA = [
+  'La tarde pide café y antojos.',
+  'Hoy se antoja algo rico. ☀',
+  'Tarde de café, planes y buena mesa.'
+];
+const FRASES_NOCHE = [
+  'MIAMI se enciende. La noche es tuya. 🌴',
+  'Modo fiesta: activado. ✨',
+  'La noche sabe mejor en MIAMI.'
+];
+
+function ponerTema(tema){
+  body.setAttribute('data-theme', tema);
+  const frases = tema === 'day' ? FRASES_DIA : FRASES_NOCHE;
+  fraseHero.textContent = frases[Math.floor(Math.random() * frases.length)];
+}
+ponerTema(new Date().getHours() >= 18 || new Date().getHours() < 6 ? 'night' : 'day');
+document.getElementById('toggleCiclo').addEventListener('click', () => {
+  ponerTema(body.getAttribute('data-theme') === 'day' ? 'night' : 'day');
+});
+
+/* ============ ABIERTO / CERRADO (según horarios del footer) ============ */
+(function estadoApertura(){
+  const ahora = new Date();
+  const dia = ahora.getDay();               // 0=domingo … 6=sábado
+  const h = ahora.getHours() + ahora.getMinutes()/60;
+  const finDeSemana = (dia === 5 || dia === 6 || dia === 0); // vie, sáb, dom
+  const cierre = finDeSemana ? 26 : 24;     // 2am / 12am (en horas desde medianoche del día anterior)
+  const abierto = (h >= 15) || (h < cierre - 24);
+  const el = document.getElementById('estadoAbierto');
+  const txt = document.getElementById('estadoTexto');
+  if(abierto){ el.classList.add('si'); txt.textContent = 'Abierto ahora'; }
+  else { txt.textContent = 'Abrimos a las 3pm'; }
+})();
+
+/* ============ UTILIDADES ============ */
+// Quita tildes y baja a minúsculas: "Café" y "cafe" coinciden en la búsqueda
+function normalizar(t){
+  return String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+}
+function slugificar(t){
+  return normalizar(t).replace(/[^a-z0-9]+/g,'-');
+}
+function esc(t){
+  return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Parser de CSV propio: mantiene TODO como texto (no convierte "$140.000"
+// a número como hacía la librería anterior). Soporta comillas, comas y
+// saltos de línea dentro de una celda entrecomillada.
+function parsearCSV(texto){
+  const filas = [];
+  let campo = '', fila = [], enComillas = false;
+  for(let i = 0; i < texto.length; i++){
+    const c = texto[i];
+    if(enComillas){
+      if(c === '"'){
+        if(texto[i+1] === '"'){ campo += '"'; i++; }
+        else enComillas = false;
+      } else campo += c;
+    } else if(c === '"'){ enComillas = true; }
+    else if(c === ','){ fila.push(campo); campo = ''; }
+    else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
+    else if(c !== '\r'){ campo += c; }
+  }
+  if(campo !== '' || fila.length){ fila.push(campo); filas.push(fila); }
+  const noVacias = filas.filter(f => f.some(x => x.trim() !== ''));
+  if(!noVacias.length) return [];
+  const encabezados = noVacias[0].map(h => h.trim());
+  return noVacias.slice(1).map(f => {
+    const obj = {};
+    encabezados.forEach((h, i) => { obj[h] = (f[i] || '').trim(); });
+    return obj;
+  });
+}
+
+// Precios en pesos colombianos (COP). Si la celda ya trae "$", se respeta
+// tal cual. Si es un número suelto (ej. 140000 o 140.000), lo formatea a
+// "$140.000". Cualquier otro texto se deja igual.
+function formatearPrecio(v){
+  const s = String(v == null ? '' : v).trim();
+  if(!s) return '';
+  if(s.includes('$')) return s;
+  const digitos = s.replace(/[.\s,]/g, '');
+  if(/^\d+$/.test(digitos)) return '$' + Number(digitos).toLocaleString('es-CO');
+  return s;
+}
+function metaDe(cat){
+  return CATEGORIA_META[String(cat).trim().toLowerCase()] || { ico:ICONO_DEFECTO, desc:'' };
+}
+
+// Acepta la columna de imagen con varios nombres: "imagen url",
+// "imagen_url", "imagen", "foto", "url imagen"…
+function imagenDe(fila){
+  for(const clave of Object.keys(fila)){
+    const k = normalizar(clave).replace(/[^a-z]/g,'');
+    if(k === 'imagenurl' || k === 'imagen' || k === 'foto' || k === 'urlimagen' || k === 'fotourl'){
+      const v = String(fila[clave] || '').trim();
+      if(/^https?:\/\//i.test(v)) return v;
+    }
+  }
+  return '';
+}
+
+// Degradados para el marcador de posición de cada categoría
+// (se ven mientras el Excel no tenga la columna "imagen url" llena)
+const GRADIENTES = [
+  ['#FFD9A0','#FF8A5C'], ['#CFE8B0','#7FB77E'], ['#FFE29A','#F2A65A'],
+  ['#F6B8C4','#E0567A'], ['#DFF3E3','#8FD1B8'], ['#FFC9A0','#FF6B4A'],
+  ['#D7E5C4','#8FAE73'], ['#FFEFC2','#E0A400'], ['#FBD3D8','#E0708A'],
+  ['#CDE3F2','#6FA8CE'], ['#E7C9A6','#B9834E']
+];
+
+/* ============ RENDER ============ */
+const revelador = new IntersectionObserver(entradas => {
+  entradas.forEach(e => { if(e.isIntersecting){ e.target.classList.add('revelado'); revelador.unobserve(e.target); } });
+}, { rootMargin:'0px 0px -8% 0px' });
+
+function renderizar(datos){
+  const contenedor = document.getElementById('contenedorPlatos');
+  const nav = document.getElementById('navCategorias');
+  const chipsCont = document.getElementById('filtrosChips');
+  contenedor.innerHTML = '';
+  nav.innerHTML = '';
+  chipsCont.innerHTML = '';
+  filtrosActivos.clear();
+
+  // Agrupar por categoría respetando el orden del Excel
+  const categorias = [];
+  const grupos = {};
+  datos.forEach(fila => {
+    const cat = String(fila.categoria || '').trim();
+    if(!cat || !String(fila.nombre || '').trim()) return;
+    if(!grupos[cat]){ grupos[cat] = []; categorias.push(cat); }
+    grupos[cat].push(fila);
+  });
+
+  // Chips de etiquetas (solo si el Excel trae la columna con datos)
+  const tagsUnicos = new Set();
+  datos.forEach(f => String(f.etiquetas || '').split(/\s+/).forEach(t => { if(t.trim()) tagsUnicos.add(t.trim().toLowerCase()); }));
+  chipsCont.classList.toggle('visible', tagsUnicos.size > 0);
+  tagsUnicos.forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.textContent = tag === 'promocion' ? '🏷 promoción' : (tag === 'favorito' ? '★ favoritos' : tag);
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('activo');
+      filtrosActivos.has(tag) ? filtrosActivos.delete(tag) : filtrosActivos.add(tag);
+      aplicarFiltros();
+    });
+    chipsCont.appendChild(chip);
+  });
+
+  categorias.forEach((cat, iCat) => {
+    const id = slugificar(cat);
+    const meta = metaDe(cat);
+    const [g1, g2] = GRADIENTES[iCat % GRADIENTES.length];
+
+    const a = document.createElement('a');
+    a.className = 'cat-pill'; a.href = '#' + id;
+    a.innerHTML = `<span class="ico">${meta.ico}</span>${esc(cat)}`;
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const destino = document.getElementById(id);
+      if(destino) destino.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+    nav.appendChild(a);
+
+    const sec = document.createElement('section');
+    sec.className = 'seccion' + (cat.toLowerCase() === 'promociones' ? ' destacada' : '');
+    sec.id = id;
+    sec.innerHTML = `
+      <div class="cabecera-cat"><span class="ico">${meta.ico}</span><h2>${esc(cat)}</h2></div>
+      ${meta.desc ? `<p class="desc-cat">${esc(meta.desc)}</p>` : ''}`;
+
+    grupos[cat].forEach(item => {
+      const tags = String(item.etiquetas || '').trim().toLowerCase();
+      const imagen = imagenDe(item);
+      const art = document.createElement('article');
+      art.className = 'plato';
+      art.dataset.tags = tags;
+      // Busca por nombre, descripción Y categoría, sin importar tildes
+      art.dataset.buscar = normalizar(item.nombre + ' ' + (item.descripcion || '') + ' ' + cat);
+      const phGrad = `linear-gradient(135deg,${g1},${g2})`;
+      // Con foto: casilla con fondo del tema (contain respeta transparencias).
+      // Sin foto: casilla "placeholder" con degradado + emoji de la categoría.
+      // Si la foto falla al cargar, vuelve al placeholder con degradado.
+      art.innerHTML = `
+        <div class="foto${imagen ? '' : ' placeholder'}" style="--ph:${phGrad}">${imagen
+          ? `<img src="${esc(imagen)}" alt="${esc(item.nombre)}" loading="lazy" onerror="this.parentElement.classList.add('placeholder');this.outerHTML='<span>${meta.ico}</span>'">`
+          : `<span>${meta.ico}</span>`}</div>
+        <div class="plato-info">
+          <div class="plato-titulo">
+            <h3>${esc(item.nombre)}</h3>
+            <span class="puntos"></span>
+            <span class="precio">${esc(formatearPrecio(item.precio))}</span>
+          </div>
+          ${item.descripcion ? `<p class="plato-desc">${esc(item.descripcion)}</p>` : ''}
+          ${tags ? `<div class="etiquetas">${tags.split(/\s+/).filter(Boolean).map(t =>
+            `<span class="etq ${esc(t)}">${t === 'promocion' ? 'promoción' : esc(t)}</span>`).join('')}</div>` : ''}
+        </div>`;
+      sec.appendChild(art);
+      revelador.observe(art);
+    });
+    contenedor.appendChild(sec);
+  });
+
+  // Mensaje de "sin resultados"
+  const vacio = document.createElement('p');
+  vacio.id = 'mensajeVacio'; vacio.className = 'estado'; vacio.style.display = 'none';
+  vacio.textContent = 'Nada coincide — prueba con otra búsqueda.';
+  contenedor.appendChild(vacio);
+
+  // Scroll-spy de categorías
+  const pills = nav.querySelectorAll('.cat-pill');
+  const secciones = contenedor.querySelectorAll('.seccion');
+  const spy = new IntersectionObserver(entradas => {
+    entradas.forEach(entrada => {
+      if(entrada.isIntersecting){
+        pills.forEach(p => p.classList.remove('activa'));
+        const activo = nav.querySelector(`.cat-pill[href="#${entrada.target.id}"]`);
+        if(activo){
+          activo.classList.add('activa');
+          activo.scrollIntoView({ block:'nearest', inline:'center', behavior:'smooth' });
+        }
+      }
+    });
+  }, { rootMargin:'-35% 0px -60% 0px' });
+  secciones.forEach(s => spy.observe(s));
+}
+
+/* ============ BÚSQUEDA + FILTROS ============ */
+const MENSAJES_VACIO = [
+  'Nada coincide… ¿seguro que se escribe así? 🤔',
+  'Eso no está en la carta (todavía). Prueba otra cosa 🌴',
+  'Ni la ruleta encontró eso. Intenta con otra palabra 🎲'
+];
+function aplicarFiltros(){
+  const q = normalizar(document.getElementById('buscarInput').value.trim());
+  let visibles = 0;
+  document.querySelectorAll('.plato').forEach(p => {
+    const tags = (p.dataset.tags || '').split(/\s+/);
+    const okTags = [...filtrosActivos].every(f => tags.includes(f));
+    const okTexto = !q || p.dataset.buscar.includes(q);
+    const visible = okTags && okTexto;
+    p.classList.toggle('oculto', !visible);
+    if(visible){ p.classList.add('revelado'); visibles++; }
+  });
+  document.querySelectorAll('.seccion').forEach(sec => {
+    const alguna = [...sec.querySelectorAll('.plato')].some(p => !p.classList.contains('oculto'));
+    sec.style.display = alguna ? '' : 'none';
+  });
+  const msg = document.getElementById('mensajeVacio');
+  if(msg){
+    if(visibles === 0) msg.textContent = MENSAJES_VACIO[Math.floor(Math.random() * MENSAJES_VACIO.length)];
+    msg.style.display = visibles === 0 ? 'block' : 'none';
+  }
+}
+document.getElementById('buscarInput').addEventListener('input', aplicarFiltros);
+
+/* ============ ELEGÍ POR MÍ ============ */
+// Mapea la respuesta del cliente a categorías del Excel. Si un día cambian
+// los nombres de las categorías, basta con ajustar estas listas.
+const RUTAS = {
+  comer: {
+    pregunta: '¿Con cuánta hambre llegaste?',
+    opciones: [
+      { texto:'🔥 Con toda — algo bien contundente', cats:['Picadas','Desgranados','Nachos'] },
+      { texto:'🍟 Un antojo — algo para picar', cats:['Salchipapas','Perras y Perros'] }
+    ]
+  },
+  tomar: {
+    pregunta: '¿Qué vibra tiene tu bebida?',
+    opciones: [
+      { texto:'☕ Algo caliente — modo café', cats:['Café'] },
+      { texto:'🧊 Algo frío y refrescante', cats:['Sodas Miami','Bebidas','Jugos Naturales'] },
+      { texto:'🎉 Modo fiesta', cats:['Shots'] }
+    ]
+  }
+};
+
+const modalFondo = document.getElementById('modalFondo');
+const modalEyebrow = document.getElementById('modalEyebrow');
+const modalTitulo = document.getElementById('modalTitulo');
+const modalDesc = document.getElementById('modalDesc');
+const modalBotones = document.getElementById('modalBotones');
+let ultimasCats = null;
+let girando = null;
+
+function botonModal(texto, clase, onClick){
+  const b = document.createElement('div');
+  b.className = 'btn ' + clase; b.textContent = texto;
+  b.addEventListener('click', onClick);
+  return b;
+}
+
+function pasoUno(){
+  clearInterval(girando);
+  modalEyebrow.textContent = 'Elegí por mí';
+  modalTitulo.textContent = '¿Qué se te antoja?';
+  modalDesc.textContent = 'Responde y la casa elige por ti.';
+  modalBotones.innerHTML = '';
+  modalBotones.appendChild(botonModal('🍽 Comer', 'opcion', () => pasoDos('comer')));
+  modalBotones.appendChild(botonModal('🥤 Tomar', 'opcion', () => pasoDos('tomar')));
+  modalBotones.appendChild(botonModal('🎲 Sorpréndeme con lo que sea', 'secundario', () => { ultimasCats = null; sugerir(); }));
+}
+
+function pasoDos(tipo){
+  const ruta = RUTAS[tipo];
+  modalTitulo.textContent = ruta.pregunta;
+  modalDesc.textContent = '';
+  modalBotones.innerHTML = '';
+  ruta.opciones.forEach(op => {
+    modalBotones.appendChild(botonModal(op.texto, 'opcion', () => { ultimasCats = op.cats; sugerir(); }));
+  });
+  modalBotones.appendChild(botonModal('← Volver', 'secundario', pasoUno));
+}
+
+function sugerir(){
+  let candidatos = platosData.filter(p =>
+    String(p.nombre || '').trim() &&
+    String(p.categoria || '').trim().toLowerCase() !== 'promociones'
+  );
+  if(ultimasCats){
+    const filtrados = candidatos.filter(p => ultimasCats.some(c => c.toLowerCase() === String(p.categoria).trim().toLowerCase()));
+    if(filtrados.length) candidatos = filtrados;
+  }
+  if(!candidatos.length) return;
+
+  const elegido = candidatos[Math.floor(Math.random() * candidatos.length)];
+  modalEyebrow.textContent = 'La casa sugiere';
+  modalDesc.textContent = '';
+  modalBotones.innerHTML = '';
+
+  // Efecto tragamonedas: nombres girando antes de aterrizar
+  clearInterval(girando);
+  let vueltas = 0;
+  girando = setInterval(() => {
+    modalTitulo.textContent = candidatos[Math.floor(Math.random() * candidatos.length)].nombre;
+    if(++vueltas >= 10){
+      clearInterval(girando);
+      modalTitulo.textContent = elegido.nombre;
+      modalDesc.innerHTML = esc(elegido.descripcion || '') +
+        (elegido.precio ? ` <span class="precio-modal">· ${esc(formatearPrecio(elegido.precio))}</span>` : '');
+      modalBotones.appendChild(botonModal('🎲 Otra vez', 'secundario', sugerir));
+      modalBotones.appendChild(botonModal('Listo, lo quiero ✓', 'primario', confirmarEleccion));
+    }
+  }, 70);
+}
+
+function cerrarModal(){ clearInterval(girando); modalFondo.classList.remove('abierto'); }
+
+const FRASES_TOAST = ['¡Buena elección! 🌴', '¡Eso pinta delicioso! 😋', '¡La casa aprueba! ✨'];
+let toastTimer = null;
+function confirmarEleccion(){
+  cerrarModal();
+  const toast = document.getElementById('toast');
+  toast.textContent = FRASES_TOAST[Math.floor(Math.random() * FRASES_TOAST.length)];
+  toast.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('visible'), 2200);
+}
+
+document.getElementById('botonRuleta').addEventListener('click', () => {
+  ultimasCats = null;
+  pasoUno();
+  modalFondo.classList.add('abierto');
+});
+modalFondo.addEventListener('click', e => { if(e.target === modalFondo) cerrarModal(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') cerrarModal(); });
+
+/* ============ BOTÓN SUBIR ============ */
+// Aparece cuando el hero sale de pantalla (IntersectionObserver es más
+// fiable que el evento scroll y no corre en cada frame).
+const botonSubir = document.getElementById('botonSubir');
+new IntersectionObserver(([entrada]) => {
+  botonSubir.classList.toggle('visible', !entrada.isIntersecting);
+}).observe(document.querySelector('.hero'));
+// Respaldo por si algún navegador no notifica el observer
+window.addEventListener('scroll', () => {
+  botonSubir.classList.toggle('visible', window.scrollY > 500);
+}, { passive:true });
+botonSubir.addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' }));
+
+/* ============ CARGA DE DATOS ============ */
+// 1) Pinta al instante con la copia local embebida.
+// 2) Trae la hoja viva de Google Sheets; si lo logra, re-renderiza.
+function usarDatos(datos){
+  platosData = datos;
+  renderizar(datos);
+  aplicarFiltros();
+}
+
+async function intentarSheetVivo(){
+  const intentos = [
+    SHEET_URL,
+    'https://corsproxy.io/?url=' + encodeURIComponent(SHEET_URL),
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_URL)
+  ];
+  for(const url of intentos){
+    try{
+      const res = await fetch(url);
+      if(!res.ok) continue;
+      const texto = await res.text();
+      const filas = parsearCSV(texto);
+      if(filas.length && filas.some(f => String(f.nombre || '').trim())){
+        usarDatos(filas);
+        console.info('Menú actualizado desde Google Sheets ✓');
+        return;
+      }
+    }catch(e){ /* siguiente intento */ }
+  }
+  console.info('Google Sheets no disponible — mostrando la copia local del menú.');
+}
+
+usarDatos(MENU_LOCAL());
+intentarSheetVivo();
+
+/* ============ COPIA LOCAL DEL MENÚ (respaldo) ============ */
+// Se usa solo si Google Sheets no responde. Mismo formato que la hoja.
+// Función (y no constante) para poder declararla al final del archivo.
+function MENU_LOCAL(){ return [
+  { categoria:'Promociones', nombre:'Combo 1: Cantarito', descripcion:'Cantarito de tequila + Nachos Miami + 6 cervezas.', precio:'$140.000', etiquetas:'promocion' },
+  { categoria:'Promociones', nombre:'Combo 2: Picada Familiar', descripcion:'Picada Familiar + botella de aguardiente + 6 cervezas.', precio:'$180.000', etiquetas:'promocion' },
+  { categoria:'Desgranados', nombre:'Desgranado Sencillo', descripcion:'Ranchera, carne desmechada o pollo desmechado.', precio:'$25.000' },
+  { categoria:'Desgranados', nombre:'Desgranado Mixto', descripcion:'Dos proteínas a elección, sobre lechuga, papa a la francesa, queso gratinado, maicitos, ripio y piña caramelizada.', precio:'$30.000', etiquetas:'favorito' },
+  { categoria:'Desgranados', nombre:'Desgranado Triple', descripcion:'Tres proteínas a elección, sobre lechuga, papa a la francesa, queso gratinado, maicitos, ripio y piña caramelizada.', precio:'$35.000' },
+  { categoria:'Salchipapas', nombre:'Salchipapa Americana', descripcion:'Papas a la francesa, salchicha, tocineta crujiente y salsa de queso cheddar.', precio:'$18.000' },
+  { categoria:'Salchipapas', nombre:'Salchipapa Gratinada', descripcion:'Papas a la francesa y salchicha bañadas en queso mozzarella y cheddar gratinado.', precio:'$21.000' },
+  { categoria:'Salchipapas', nombre:'Salchiranchera', descripcion:'Papas a la francesa, salchicha, tocineta crujiente y ranchera de la casa.', precio:'$21.000' },
+  { categoria:'Salchipapas', nombre:'Ranchera Gratinada', descripcion:'Papas a la francesa gratinadas, bañadas en ranchera y queso fundido.', precio:'$25.000' },
+  { categoria:'Salchipapas', nombre:'Salchi Carne', descripcion:'Papas a la francesa con salchicha y carne desmechada.', precio:'$25.000' },
+  { categoria:'Salchipapas', nombre:'Salchi Pollo', descripcion:'Papas a la francesa con salchicha y pollo desmechado.', precio:'$25.000' },
+  { categoria:'Perras y Perros', nombre:'Perra Miami', descripcion:'120g de tocineta ahumada sobre base de ensalada, cebolla caramelizada y porción de papas.', precio:'$27.000' },
+  { categoria:'Perras y Perros', nombre:'Perra Empotrada', descripcion:'120g de tocineta ahumada, base de ensalada, cebolla caramelizada, queso fundido y salchicha americana, con porción de papas.', precio:'$32.000', etiquetas:'favorito' },
+  { categoria:'Perras y Perros', nombre:'Perro Miami', descripcion:'Salchicha americana con queso fundido, papas, tocineta crujiente, ripio de papa y mermelada.', precio:'$23.000' },
+  { categoria:'Perras y Perros', nombre:'Perro Miami sin papas', descripcion:'La misma receta del Perro Miami, sin porción de papas.', precio:'$18.000' },
+  { categoria:'Nachos', nombre:'Nachos Sencillo', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 1 proteína a elección (pollo, carne o ranchera).', precio:'$40.000' },
+  { categoria:'Nachos', nombre:'Nachos Mixto', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 2 proteínas a elección (pollo, carne o ranchera).', precio:'$45.000' },
+  { categoria:'Nachos', nombre:'Nachos Triple', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 3 proteínas a elección (pollo, carne o ranchera).', precio:'$50.000' },
+  { categoria:'Picadas', nombre:'Picada Miami (600g)', descripcion:'600g de proteína: pechuga de pollo, lomo de cerdo, costilla de cerdo, lomo de res y chorizo, con papas a la francesa, plátano verde, aros de cebolla y arepa frita.', precio:'$50.000', etiquetas:'favorito' },
+  { categoria:'Picadas', nombre:'Picada Miami con chicharrón', descripcion:'La Picada Miami (600g), con adición de chicharrón.', precio:'$65.000' },
+  { categoria:'Picadas', nombre:'Picada 1200g', descripcion:'1200g de proteína: selección de pechuga de pollo, lomo de cerdo, costilla de cerdo, lomo de res y chorizo, sobre papas a la francesa, plátano verde, aros de cebolla y arepa frita.', precio:'$90.000', etiquetas:'favorito' },
+  { categoria:'Picadas', nombre:'Picada 1200g con chicharrón', descripcion:'La Picada de 1200g, con adición de chicharrón.', precio:'$105.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Miami', descripcion:'Soda artesanal de la casa.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Maracuyá', descripcion:'Soda artesanal sabor maracuyá.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Lychee', descripcion:'Soda artesanal sabor lychee.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Fresa', descripcion:'Soda artesanal sabor fresa.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Frutos Rojos', descripcion:'Soda artesanal sabor frutos rojos.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Frutos Amarillos', descripcion:'Soda artesanal sabor frutos amarillos.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Lulo', descripcion:'Soda artesanal sabor lulo.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Mandarina', descripcion:'Soda artesanal sabor mandarina.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Mango Chelada', descripcion:'Soda de mango estilo chelada.', precio:'$15.000' },
+  { categoria:'Sodas Miami', nombre:'Soda Mango', descripcion:'Soda artesanal sabor mango.', precio:'$15.000' },
+  { categoria:'Café', nombre:'Americano Espresso', descripcion:'Café negro de extracción espresso.', precio:'$4.000' },
+  { categoria:'Café', nombre:'Espresso Doble', descripcion:'Doble shot de espresso.', precio:'$6.000' },
+  { categoria:'Café', nombre:'Latte', descripcion:'Espresso con leche vaporizada.', precio:'$6.000' },
+  { categoria:'Café', nombre:'Capuchino', descripcion:'Espresso con leche vaporizada y espuma cremosa.', precio:'$10.000' },
+  { categoria:'Café', nombre:'Frapuchino', descripcion:'Café frío batido con hielo y leche.', precio:'$12.000' },
+  { categoria:'Bebidas', nombre:'Limonada de Coco', descripcion:'Limonada natural con leche de coco.', precio:'$15.000' },
+  { categoria:'Bebidas', nombre:'Cerezada', descripcion:'Bebida refrescante sabor cereza.', precio:'$15.000' },
+  { categoria:'Bebidas', nombre:'Hierba Buena', descripcion:'Limonada con hierbabuena fresca.', precio:'$15.000' },
+  { categoria:'Bebidas', nombre:'Limonada de Lychee', descripcion:'Limonada natural sabor lychee.', precio:'$15.000' },
+  { categoria:'Bebidas', nombre:'Limonada Natural', descripcion:'Limonada natural clásica.', precio:'$8.000' },
+  { categoria:'Bebidas', nombre:'Gaseosas', descripcion:'Línea de gaseosas variadas.', precio:'$5.000' },
+  { categoria:'Bebidas', nombre:'Ginger', descripcion:'Ginger ale.', precio:'$6.000' },
+  { categoria:'Bebidas', nombre:'Gatorade', descripcion:'Bebida hidratante.', precio:'$9.000' },
+  { categoria:'Bebidas', nombre:'Electrolit', descripcion:'Bebida rehidratante.', precio:'$12.000' },
+  { categoria:'Bebidas', nombre:'Soda', descripcion:'Soda simple.', precio:'$6.000' },
+  { categoria:'Bebidas', nombre:'Agua', descripcion:'Agua en botella.', precio:'$5.000' },
+  { categoria:'Bebidas', nombre:'Jugo Hit', descripcion:'Jugo de caja Hit.', precio:'$5.000' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Maracuyá', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Mango', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Frutos Rojos', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Lulo', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Piña', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
+  { categoria:'Jugos Naturales', nombre:'Limonada de Leche', descripcion:'Limonada natural preparada con leche.', precio:'$12.000' },
+  { categoria:'Jugos Naturales', nombre:'Jarra de Cerezada', descripcion:'Jarra para compartir, sabor cereza.', precio:'$30.000' },
+  { categoria:'Jugos Naturales', nombre:'Jarra de Limonada', descripcion:'Jarra de limonada natural para compartir.', precio:'$25.000' },
+  { categoria:'Shots', nombre:'Semen de Pitufo', descripcion:'Shot de autor de la casa.', precio:'$15.000' },
+  { categoria:'Shots', nombre:'Sesos Miami', descripcion:'Shot de autor de la casa.', precio:'$15.000' },
+  { categoria:'Shots', nombre:'Mamadita', descripcion:'Shot de autor de la casa.', precio:'$15.000' },
+  { categoria:'Shots', nombre:'Tablazo', descripcion:'Shot de autor de la casa.', precio:'$15.000' }
+];}
+</script>
+</body>
+</html>
