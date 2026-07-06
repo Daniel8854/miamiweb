@@ -42,35 +42,35 @@
 
 <style>
   :root{
-    /* ---- DÍA: luz de costa, crema y coral ---- */
-    --fondo:#FAF5EC;
+    /* ---- DÍA: crema cálido y tonos tierra, suaves ---- */
+    --fondo:#FAF6EF;
     --superficie:#FFFFFF;
-    --superficie-2:#F1EADA;
-    --tinta:#161F1C;
-    --tinta-suave:#5F6E67;
-    --acento:#FF5A3C;          /* coral Miami */
-    --acento-2:#00A5A0;        /* turquesa */
-    --oro:#DFA000;
-    --rosa:#E8467C;
-    --linea:rgba(22,31,28,.10);
-    --sombra:0 12px 32px -14px rgba(22,31,28,.22);
+    --superficie-2:#F1EADD;
+    --tinta:#2B2420;
+    --tinta-suave:#7A7168;
+    --acento:#C1633F;          /* terracota */
+    --acento-2:#6E9083;        /* salvia */
+    --oro:#C79A3D;
+    --rosa:#C97B86;
+    --linea:rgba(43,36,32,.09);
+    --sombra:0 10px 28px -16px rgba(43,36,32,.18);
     --glow:none;
     --transicion:650ms cubic-bezier(.22,.61,.36,1);
   }
   [data-theme="night"]{
-    /* ---- NOCHE: Miami Vice, neón sobre azul profundo ---- */
-    --fondo:#0A0E1A;
-    --superficie:#121829;
-    --superficie-2:#0D1220;
-    --tinta:#F4F1E8;
-    --tinta-suave:#93A0B4;
-    --acento:#FF4D9D;          /* rosa neón */
-    --acento-2:#26E5D8;        /* cian neón */
-    --oro:#FFD24D;
-    --rosa:#FF4D9D;
-    --linea:rgba(244,241,232,.12);
-    --sombra:0 14px 44px -12px rgba(0,0,0,.6);
-    --glow:0 0 18px;
+    /* ---- NOCHE: lounge elegante, tonos cálidos atenuados ---- */
+    --fondo:#14181F;
+    --superficie:#1D222B;
+    --superficie-2:#181C24;
+    --tinta:#F1ECE4;
+    --tinta-suave:#A6A9B0;
+    --acento:#D98B72;          /* terracota clara */
+    --acento-2:#7FB0A6;        /* salvia clara */
+    --oro:#E0BB6B;
+    --rosa:#D98B9E;
+    --linea:rgba(241,236,228,.10);
+    --sombra:0 14px 36px -16px rgba(0,0,0,.45);
+    --glow:0 0 12px;
   }
 
   *{box-sizing:border-box}
@@ -82,12 +82,39 @@
     transition:background var(--transicion), color var(--transicion);
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
+    position:relative; overflow-x:hidden;
+  }
+  /* Atmósfera: manchas de color muy suaves que respiran despacio detrás de
+     todo el contenido, cubriendo bien las esquinas para que no se sienta
+     plano/blanco en pantallas anchas. Le dan profundidad sin distraer. */
+  body::before{
+    content:''; position:fixed; inset:-12% -8%; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento) 24%, transparent), transparent 70%) 14% 16%/48% 44% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--oro) 18%, transparent), transparent 70%) 88% 12%/42% 40% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 22%, transparent), transparent 70%) 90% 88%/48% 44% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--rosa) 16%, transparent), transparent 70%) 10% 86%/42% 38% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 12%, transparent), transparent 75%) 50% 50%/56% 52% no-repeat;
+    filter:blur(64px); opacity:.72;
+    animation:derivaAmbiente 42s ease-in-out infinite;
+    transition:opacity var(--transicion);
+  }
+  [data-theme="night"] body::before{ opacity:.5; }
+  @keyframes derivaAmbiente{
+    0%,100%{ background-position:14% 16%, 88% 12%, 90% 88%, 10% 86%, 50% 50%; }
+    50%{ background-position:22% 26%, 80% 20%, 80% 78%, 18% 76%, 56% 44%; }
   }
   .marco{
-    max-width:560px; margin:0 auto; min-height:100vh; position:relative;
-    background:var(--fondo);
-    box-shadow:0 0 60px rgba(0,0,0,.08);
+    max-width:620px; margin:0 auto; min-height:100vh; position:relative; z-index:1;
     transition:background var(--transicion);
+  }
+  @media (min-width:760px){
+    .marco{ max-width:840px; }
+    main{ padding:8px 46px 160px; }
+    .seccion h2{ font-size:2.35rem; }
+    .hero{ padding:46px 24px 26px; }
+    .lista-platos{ display:grid; grid-template-columns:1fr 1fr; gap:14px 20px; }
+    .lista-platos .plato{ margin-bottom:0; }
   }
 
   /* ================= HERO ================= */
@@ -164,6 +191,7 @@
     box-shadow:var(--sombra); cursor:pointer; user-select:none;
   }
   .ciclo-etq{
+    display:inline-flex; align-items:center; gap:5px;
     font-size:.6rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
     padding:6px 10px; border-radius:999px; color:var(--tinta-suave);
     transition:color 300ms, background 300ms;
@@ -198,79 +226,88 @@
     cursor:pointer; white-space:nowrap; transition:all 200ms; text-transform:capitalize;
   }
   .chip.activo{ background:var(--tinta); color:var(--fondo); border-color:var(--tinta); }
-  .categorias{ display:flex; gap:4px; overflow-x:auto; margin-top:8px; padding-bottom:0; scrollbar-width:none; }
+  .categorias{ position:relative; display:flex; gap:6px; overflow-x:auto; margin-top:8px; padding-bottom:0; scrollbar-width:none; }
   .categorias::-webkit-scrollbar{ display:none; }
   .cat-pill{
-    flex:none; display:flex; align-items:center; gap:6px;
+    flex:none;
     font-size:.84rem; font-weight:700; padding:10px 12px 12px;
-    color:var(--tinta-suave); border-bottom:2.5px solid transparent;
+    color:var(--tinta-suave);
     cursor:pointer; text-decoration:none; white-space:nowrap;
-    transition:color 200ms, border-color 200ms;
+    transition:color 200ms;
   }
-  .cat-pill .ico{ font-size:1rem; line-height:1; }
-  .cat-pill.activa{ color:var(--tinta); border-color:var(--acento); }
+  .cat-pill.activa{ color:var(--tinta); }
+  .cat-indicador{
+    position:absolute; bottom:0; height:2.5px; border-radius:2px;
+    background:var(--acento); pointer-events:none;
+    transition:left 360ms cubic-bezier(.22,.61,.36,1), width 360ms cubic-bezier(.22,.61,.36,1), opacity 200ms;
+    opacity:0;
+  }
 
   /* ================= SECCIONES ================= */
   main{ padding:4px 24px 140px; }
   .seccion{ padding-top:34px; scroll-margin-top:150px; }
-  .cabecera-cat{ display:flex; align-items:baseline; gap:10px; }
-  .cabecera-cat .ico{ font-size:1.5rem; }
+  .cabecera-cat{ display:flex; align-items:center; gap:16px; }
+  .cabecera-cat .regla{
+    flex:1; height:1px;
+    background:linear-gradient(90deg, var(--linea), transparent);
+  }
   .seccion h2{
     font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.05em;
-    font-size:2rem; margin:0; line-height:1;
+    font-size:2rem; margin:0; line-height:1; white-space:nowrap;
   }
   [data-theme="night"] .seccion h2{ text-shadow:var(--glow) color-mix(in srgb, var(--acento-2) 30%, transparent); }
   .desc-cat{ margin:6px 0 6px; color:var(--tinta-suave); font-size:.86rem; }
 
   .plato{
-    display:grid; grid-template-columns:76px 1fr; gap:14px; align-items:start;
-    padding:15px 0; border-bottom:1px solid var(--linea);
-    opacity:0; transform:translateY(12px);
-    transition:opacity 500ms ease, transform 500ms ease;
+    display:grid; grid-template-columns:84px 1fr; gap:16px; align-items:start;
+    padding:18px; margin-bottom:14px; border-radius:20px;
+    background:var(--superficie); border:1px solid var(--linea); box-shadow:var(--sombra);
+    opacity:0; transform:translateY(18px) scale(.97);
+    transition:opacity 600ms ease, transform 600ms ease, background var(--transicion), border-color var(--transicion);
   }
   .plato.revelado{ opacity:1; transform:none; }
   .plato.oculto{ display:none; }
+  .plato:hover{ transform:translateY(-2px); box-shadow:0 16px 32px -16px rgba(0,0,0,.22); }
   /* La casilla de la foto tiene fondo del TEMA (crema de día, oscuro de
      noche). Así, si la imagen es transparente (sin fondo propio), lo que
      se ve detrás es el color de la página y cambia con día/noche.
      Si la imagen trae su propio fondo, lo tapa por completo y no importa. */
   .foto{
-    width:76px; height:76px; border-radius:16px; overflow:hidden; flex:none;
-    display:flex; align-items:center; justify-content:center; font-size:1.8rem;
+    width:84px; height:84px; border-radius:16px; overflow:hidden; flex:none;
+    display:flex; align-items:center; justify-content:center;
     background:var(--superficie-2);
     transition:background var(--transicion);
   }
   /* contain = la foto se adapta completa a la casilla sin recortarse ni
      estirar el producto; el tamaño de la fila no depende de la imagen. */
   .foto img{ width:100%; height:100%; object-fit:contain; display:block; }
-  /* Solo el marcador de posición (sin foto) lleva el degradado de color */
+  /* Solo el marcador de posición (sin foto) lleva el degradado de color y
+     el monograma (primera letra del plato) en vez de un emoji. */
   .foto.placeholder{ background-image:var(--ph); }
-  .plato-titulo{ display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
-  .plato-titulo h3{ font-weight:800; font-size:1rem; margin:0; line-height:1.35; }
-  .puntos{
-    flex:1; border-bottom:2px dotted color-mix(in srgb, var(--tinta) 22%, transparent);
-    transform:translateY(-4px); min-width:14px;
+  .foto.placeholder span{
+    font-family:'Fraunces',serif; font-style:italic; font-weight:600;
+    font-size:2rem; color:rgba(0,0,0,.32); line-height:1;
   }
+  .plato-titulo{ display:flex; justify-content:space-between; align-items:baseline; gap:14px; }
+  .plato-titulo h3{ font-weight:800; font-size:1.05rem; margin:0; line-height:1.35; }
   .precio{
     font-weight:800; font-size:.95rem; flex:none; color:var(--acento);
     white-space:nowrap; font-variant-numeric:tabular-nums;
   }
-  .plato-desc{ margin:5px 0 0; font-size:.85rem; color:var(--tinta-suave); line-height:1.5; max-width:46ch; }
+  .plato-desc{ margin:6px 0 0; font-size:.88rem; color:var(--tinta-suave); line-height:1.55; max-width:46ch; }
   .etiquetas{ display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
   .etq{ font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; padding:3px 9px; border-radius:999px; }
   .etq.favorito{ background:color-mix(in srgb, var(--oro) 22%, transparent); color:var(--oro); }
   .etq.promocion{ background:color-mix(in srgb, var(--acento) 18%, transparent); color:var(--acento); }
   .etq.nuevo{ background:color-mix(in srgb, var(--acento-2) 18%, transparent); color:var(--acento-2); }
 
-  /* Promociones: tarjetas destacadas */
+  /* Promociones: tarjetas con acento sutil */
   .seccion.destacada .plato{
-    border:1.5px solid color-mix(in srgb, var(--acento) 45%, transparent);
-    border-radius:20px; padding:16px 18px; margin-bottom:12px;
-    background:linear-gradient(135deg, color-mix(in srgb, var(--acento) 8%, var(--superficie)), var(--superficie));
-    box-shadow:var(--sombra);
+    border-color:color-mix(in srgb, var(--acento) 40%, transparent);
+    background:linear-gradient(135deg, color-mix(in srgb, var(--acento) 7%, var(--superficie)), var(--superficie));
   }
   [data-theme="night"] .seccion.destacada .plato{
-    box-shadow:0 0 24px -6px color-mix(in srgb, var(--acento) 35%, transparent);
+    box-shadow:0 0 20px -8px color-mix(in srgb, var(--acento) 30%, transparent);
   }
   .seccion.destacada .plato-titulo h3{ font-size:1.08rem; }
 
@@ -305,11 +342,6 @@
   }
   .subir.visible{ opacity:1; pointer-events:auto; transform:none; }
   @media (min-width:600px){ .subir{ left:calc(50% - 280px + 18px); } }
-
-  /* Iconos de categoría con vida */
-  .cat-pill .ico, .cabecera-cat .ico{ display:inline-block; }
-  @keyframes meneo{ 25%{ transform:rotate(-12deg); } 75%{ transform:rotate(12deg); } }
-  .cat-pill:hover .ico, .cat-pill.activa .ico{ animation:meneo .5s ease; }
 
   /* Toast de confirmación */
   .toast{
@@ -385,8 +417,8 @@
   <header class="hero">
     <div class="hero-glow"></div>
     <div class="ciclo" id="toggleCiclo" role="button" aria-label="Cambiar entre modo día y noche">
-      <span class="ciclo-etq" data-modo="dia">☀ Día</span>
-      <span class="ciclo-etq" data-modo="noche">☾ Noche</span>
+      <span class="ciclo-etq" data-modo="dia"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>Día</span>
+      <span class="ciclo-etq" data-modo="noche"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 14.7A8.6 8.6 0 1 1 9.3 3.5a7 7 0 0 0 11.2 11.2z"/></svg>Noche</span>
     </div>
     <img src="logo-miami.jpeg" alt="MIAMI Gastrobar" class="logo-img"
          onerror="this.style.display='none';document.getElementById('logoTexto').style.display='block'">
@@ -395,10 +427,10 @@
     <p class="hero-linea" id="fraseHero">La tarde pide café y antojos.</p>
     <div class="estado-abierto" id="estadoAbierto"><span class="punto"></span><span id="estadoTexto">…</span></div>
     <div class="contactos">
-      <a class="contacto wa" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener">🛵 Domicilio</a>
-      <a class="contacto wa" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener">📅 Reservas</a>
-      <a class="contacto" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener">📸 Instagram</a>
-      <a class="contacto" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener">📍 Mapa</a>
+      <a class="contacto wa" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="2.3"/><circle cx="17" cy="18" r="2.3"/><path d="M6 18h6l2-7h4M9.5 11h5l2.5 4"/></svg>Domicilio</a>
+      <a class="contacto wa" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Reservas</a>
+      <a class="contacto" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6" fill="currentColor" stroke="none"/></svg>Instagram</a>
+      <a class="contacto" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.5s7-7.2 7-12A7 7 0 0 0 5 9.5c0 4.8 7 12 7 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>Mapa</a>
     </div>
   </header>
 
@@ -426,7 +458,7 @@
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
   </button>
 
-  <div class="toast" id="toast">¡Buena elección! 🌴</div>
+  <div class="toast" id="toast">¡Buena elección!</div>
 
   <div class="modal-fondo" id="modalFondo" role="dialog" aria-modal="true">
     <div class="modal">
@@ -454,10 +486,10 @@
       </div>
     </div>
     <div class="acciones">
-      <a class="accion principal" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener">🛵 Domicilio</a>
-      <a class="accion principal" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener">📅 Reservas</a>
-      <a class="accion borde" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener">📸 Instagram</a>
-      <a class="accion borde" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener">📍 Cómo llegar</a>
+      <a class="accion principal" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="2.3"/><circle cx="17" cy="18" r="2.3"/><path d="M6 18h6l2-7h4M9.5 11h5l2.5 4"/></svg>Domicilio</a>
+      <a class="accion principal" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Reservas</a>
+      <a class="accion borde" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6" fill="currentColor" stroke="none"/></svg>Instagram</a>
+      <a class="accion borde" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.5s7-7.2 7-12A7 7 0 0 0 5 9.5c0 4.8 7 12 7 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>Cómo llegar</a>
     </div>
     <p class="direccion">Cl. 1 #6-2, Buenaventura, Valle del Cauca</p>
   </footer>
@@ -474,25 +506,24 @@
 // trae cabecera CORS, así que un fetch normal falla siempre desde GitHub Pages.
 const SHEET_ID = "1XfUtVJIsIkp2E2jF1Ascya7xqtbvS007EfLRglDBLto";
 
-/* ============ ICONOS Y DESCRIPCIONES POR CATEGORÍA ============ */
-// Si en el Excel aparece una categoría nueva, sale igual (con 🍽 por defecto).
+/* ============ DESCRIPCIONES POR CATEGORÍA ============ */
+// Si en el Excel aparece una categoría nueva, sale igual (sin descripción).
 const CATEGORIA_META = {
-  'promociones':     { ico:'🔥', desc:'Combos pensados para la mesa entera.' },
-  'desgranados':     { ico:'🌽', desc:'Maíz desgranado con todo lo bueno encima.' },
-  'salchipapas':     { ico:'🍟', desc:'El clásico que nunca falla.' },
-  'perras y perros': { ico:'🌭', desc:'Al estilo de la casa, bien cargados.' },
-  'nachos':          { ico:'🧀', desc:'Para meter la mano al centro.' },
-  'picadas':         { ico:'🥩', desc:'Proteína de sobra, para compartir.' },
-  'sodas miami':     { ico:'🥤', desc:'Sodas artesanales firmadas por la casa.' },
-  'café':            { ico:'☕', desc:'Extracción espresso, tarde de café.' },
-  'bebidas':         { ico:'🧊', desc:'Frías y refrescantes.' },
-  'jugos naturales': { ico:'🍹', desc:'Fruta de verdad, en agua o en leche.' },
-  'shots':           { ico:'🥃', desc:'Cortos, intensos y de autor. Modo fiesta.' },
-  'cocteles':        { ico:'🍸', desc:'Firmados por la barra de MIAMI.' },
-  'cervezas':        { ico:'🍺', desc:'Bien frías, siempre.' },
-  'postres':         { ico:'🍰', desc:'El cierre dulce.' }
+  'promociones':     { desc:'Combos pensados para la mesa entera.' },
+  'desgranados':     { desc:'Maíz desgranado con todo lo bueno encima.' },
+  'salchipapas':     { desc:'El clásico que nunca falla.' },
+  'perras y perros': { desc:'Al estilo de la casa, bien cargados.' },
+  'nachos':          { desc:'Para meter la mano al centro.' },
+  'picadas':         { desc:'Proteína de sobra, para compartir.' },
+  'sodas miami':     { desc:'Sodas artesanales firmadas por la casa.' },
+  'café':            { desc:'Extracción espresso, tarde de café.' },
+  'bebidas':         { desc:'Frías y refrescantes.' },
+  'jugos naturales': { desc:'Fruta de verdad, en agua o en leche.' },
+  'shots':           { desc:'Cortos, intensos y de autor. Modo fiesta.' },
+  'cocteles':        { desc:'Firmados por la barra de MIAMI.' },
+  'cervezas':        { desc:'Bien frías, siempre.' },
+  'postres':         { desc:'El cierre dulce.' }
 };
-const ICONO_DEFECTO = '🍽';
 
 /* ============ ESTADO ============ */
 let platosData = [];
@@ -503,12 +534,12 @@ const body = document.body;
 const fraseHero = document.getElementById('fraseHero');
 const FRASES_DIA = [
   'La tarde pide café y antojos.',
-  'Hoy se antoja algo rico. ☀',
+  'Hoy se antoja algo rico.',
   'Tarde de café, planes y buena mesa.'
 ];
 const FRASES_NOCHE = [
-  'MIAMI se enciende. La noche es tuya. 🌴',
-  'Modo fiesta: activado. ✨',
+  'MIAMI se enciende. La noche es tuya.',
+  'Modo fiesta: activado.',
   'La noche sabe mejor en MIAMI.'
 ];
 
@@ -577,7 +608,7 @@ function formatearPrecio(v){
   return s;
 }
 function metaDe(cat){
-  return CATEGORIA_META[String(cat).trim().toLowerCase()] || { ico:ICONO_DEFECTO, desc:'' };
+  return CATEGORIA_META[String(cat).trim().toLowerCase()] || { desc:'' };
 }
 
 // Acepta la columna de imagen con varios nombres: "imagen url",
@@ -596,10 +627,10 @@ function imagenDe(fila){
 // Degradados para el marcador de posición de cada categoría
 // (se ven mientras el Excel no tenga la columna "imagen url" llena)
 const GRADIENTES = [
-  ['#FFD9A0','#FF8A5C'], ['#CFE8B0','#7FB77E'], ['#FFE29A','#F2A65A'],
-  ['#F6B8C4','#E0567A'], ['#DFF3E3','#8FD1B8'], ['#FFC9A0','#FF6B4A'],
-  ['#D7E5C4','#8FAE73'], ['#FFEFC2','#E0A400'], ['#FBD3D8','#E0708A'],
-  ['#CDE3F2','#6FA8CE'], ['#E7C9A6','#B9834E']
+  ['#F3DCC0','#D9A876'], ['#DCE6CE','#9AB08B'], ['#F0DDB8','#D3A85C'],
+  ['#EAD1D3','#C98F97'], ['#DCE8E0','#96B3A4'], ['#EFD9C4','#C97F63'],
+  ['#DCE2CE','#A0AD85'], ['#F0E5C7','#C9A24E'], ['#EBD6D6','#C08792'],
+  ['#D8E2E4','#84A3AD'], ['#E7D6BF','#B08D5E']
 ];
 
 /* ============ RENDER ============ */
@@ -633,7 +664,7 @@ function renderizar(datos){
   tagsUnicos.forEach(tag => {
     const chip = document.createElement('div');
     chip.className = 'chip';
-    chip.textContent = tag === 'promocion' ? '🏷 promoción' : (tag === 'favorito' ? '★ favoritos' : tag);
+    chip.textContent = tag === 'promocion' ? 'promoción' : (tag === 'favorito' ? 'favoritos' : tag);
     chip.addEventListener('click', () => {
       chip.classList.toggle('activo');
       filtrosActivos.has(tag) ? filtrosActivos.delete(tag) : filtrosActivos.add(tag);
@@ -649,7 +680,7 @@ function renderizar(datos){
 
     const a = document.createElement('a');
     a.className = 'cat-pill'; a.href = '#' + id;
-    a.innerHTML = `<span class="ico">${meta.ico}</span>${esc(cat)}`;
+    a.textContent = cat;
     a.addEventListener('click', e => {
       e.preventDefault();
       const destino = document.getElementById(id);
@@ -661,36 +692,39 @@ function renderizar(datos){
     sec.className = 'seccion' + (cat.toLowerCase() === 'promociones' ? ' destacada' : '');
     sec.id = id;
     sec.innerHTML = `
-      <div class="cabecera-cat"><span class="ico">${meta.ico}</span><h2>${esc(cat)}</h2></div>
-      ${meta.desc ? `<p class="desc-cat">${esc(meta.desc)}</p>` : ''}`;
+      <div class="cabecera-cat"><h2>${esc(cat)}</h2><span class="regla"></span></div>
+      ${meta.desc ? `<p class="desc-cat">${esc(meta.desc)}</p>` : ''}
+      <div class="lista-platos"></div>`;
+    const lista = sec.querySelector('.lista-platos');
 
-    grupos[cat].forEach(item => {
+    grupos[cat].forEach((item, iItem) => {
       const tags = String(item.etiquetas || '').trim().toLowerCase();
       const imagen = imagenDe(item);
+      const inicial = esc((String(item.nombre || '?').trim().charAt(0) || '?').toUpperCase());
       const art = document.createElement('article');
       art.className = 'plato';
       art.dataset.tags = tags;
+      art.style.transitionDelay = (iItem % 6) * 55 + 'ms';
       // Busca por nombre, descripción Y categoría, sin importar tildes
       art.dataset.buscar = normalizar(item.nombre + ' ' + (item.descripcion || '') + ' ' + cat);
       const phGrad = `linear-gradient(135deg,${g1},${g2})`;
       // Con foto: casilla con fondo del tema (contain respeta transparencias).
-      // Sin foto: casilla "placeholder" con degradado + emoji de la categoría.
+      // Sin foto: casilla "placeholder" con degradado + la inicial del plato.
       // Si la foto falla al cargar, vuelve al placeholder con degradado.
       art.innerHTML = `
         <div class="foto${imagen ? '' : ' placeholder'}" style="--ph:${phGrad}">${imagen
-          ? `<img src="${esc(imagen)}" alt="${esc(item.nombre)}" loading="lazy" onerror="this.parentElement.classList.add('placeholder');this.outerHTML='<span>${meta.ico}</span>'">`
-          : `<span>${meta.ico}</span>`}</div>
+          ? `<img src="${esc(imagen)}" alt="${esc(item.nombre)}" loading="lazy" onerror="this.parentElement.classList.add('placeholder');this.outerHTML='<span>${inicial}</span>'">`
+          : `<span>${inicial}</span>`}</div>
         <div class="plato-info">
           <div class="plato-titulo">
             <h3>${esc(item.nombre)}</h3>
-            <span class="puntos"></span>
             <span class="precio">${esc(formatearPrecio(item.precio))}</span>
           </div>
           ${item.descripcion ? `<p class="plato-desc">${esc(item.descripcion)}</p>` : ''}
           ${tags ? `<div class="etiquetas">${tags.split(/\s+/).filter(Boolean).map(t =>
             `<span class="etq ${esc(t)}">${t === 'promocion' ? 'promoción' : esc(t)}</span>`).join('')}</div>` : ''}
         </div>`;
-      sec.appendChild(art);
+      lista.appendChild(art);
       revelador.observe(art);
     });
     contenedor.appendChild(sec);
@@ -702,8 +736,22 @@ function renderizar(datos){
   vacio.textContent = 'Nada coincide — prueba con otra búsqueda.';
   contenedor.appendChild(vacio);
 
-  // Scroll-spy de categorías
+  // Indicador deslizante bajo la categoría activa (se mueve con transición
+  // suave en vez de aparecer/desaparecer de golpe)
   const pills = nav.querySelectorAll('.cat-pill');
+  const indicador = document.createElement('span');
+  indicador.className = 'cat-indicador';
+  nav.appendChild(indicador);
+  function moverIndicador(pill){
+    if(!pill){ indicador.style.opacity = '0'; return; }
+    indicador.style.left = pill.offsetLeft + 'px';
+    indicador.style.width = pill.offsetWidth + 'px';
+    indicador.style.opacity = '1';
+  }
+  pills.forEach(p => p.addEventListener('click', () => moverIndicador(p)));
+  if(pills.length){ pills[0].classList.add('activa'); moverIndicador(pills[0]); }
+
+  // Scroll-spy de categorías
   const secciones = contenedor.querySelectorAll('.seccion');
   const spy = new IntersectionObserver(entradas => {
     entradas.forEach(entrada => {
@@ -713,6 +761,7 @@ function renderizar(datos){
         if(activo){
           activo.classList.add('activa');
           activo.scrollIntoView({ block:'nearest', inline:'center', behavior:'smooth' });
+          moverIndicador(activo);
         }
       }
     });
@@ -722,9 +771,9 @@ function renderizar(datos){
 
 /* ============ BÚSQUEDA + FILTROS ============ */
 const MENSAJES_VACIO = [
-  'Nada coincide… ¿seguro que se escribe así? 🤔',
-  'Eso no está en la carta (todavía). Prueba otra cosa 🌴',
-  'Ni la ruleta encontró eso. Intenta con otra palabra 🎲'
+  'Nada coincide… ¿seguro que se escribe así?',
+  'Eso no está en la carta (todavía). Prueba otra cosa.',
+  'Ni la ruleta encontró eso. Intenta con otra palabra.'
 ];
 function aplicarFiltros(){
   const q = normalizar(document.getElementById('buscarInput').value.trim());
@@ -756,16 +805,16 @@ const RUTAS = {
   comer: {
     pregunta: '¿Con cuánta hambre llegaste?',
     opciones: [
-      { texto:'🔥 Con toda — algo bien contundente', cats:['Picadas','Desgranados','Nachos'] },
-      { texto:'🍟 Un antojo — algo para picar', cats:['Salchipapas','Perras y Perros'] }
+      { texto:'Con toda — algo bien contundente', cats:['Picadas','Desgranados','Nachos'] },
+      { texto:'Un antojo — algo para picar', cats:['Salchipapas','Perras y Perros'] }
     ]
   },
   tomar: {
     pregunta: '¿Qué vibra tiene tu bebida?',
     opciones: [
-      { texto:'☕ Algo caliente — modo café', cats:['Café'] },
-      { texto:'🧊 Algo frío y refrescante', cats:['Sodas Miami','Bebidas','Jugos Naturales'] },
-      { texto:'🎉 Modo fiesta', cats:['Shots'] }
+      { texto:'Algo caliente — modo café', cats:['Café'] },
+      { texto:'Algo frío y refrescante', cats:['Sodas Miami','Bebidas','Jugos Naturales'] },
+      { texto:'Modo fiesta', cats:['Shots'] }
     ]
   }
 };
@@ -791,9 +840,9 @@ function pasoUno(){
   modalTitulo.textContent = '¿Qué se te antoja?';
   modalDesc.textContent = 'Responde y la casa elige por ti.';
   modalBotones.innerHTML = '';
-  modalBotones.appendChild(botonModal('🍽 Comer', 'opcion', () => pasoDos('comer')));
-  modalBotones.appendChild(botonModal('🥤 Tomar', 'opcion', () => pasoDos('tomar')));
-  modalBotones.appendChild(botonModal('🎲 Sorpréndeme con lo que sea', 'secundario', () => { ultimasCats = null; sugerir(); }));
+  modalBotones.appendChild(botonModal('Comer', 'opcion', () => pasoDos('comer')));
+  modalBotones.appendChild(botonModal('Tomar', 'opcion', () => pasoDos('tomar')));
+  modalBotones.appendChild(botonModal('Sorpréndeme con lo que sea', 'secundario', () => { ultimasCats = null; sugerir(); }));
 }
 
 function pasoDos(tipo){
@@ -833,15 +882,15 @@ function sugerir(){
       modalTitulo.textContent = elegido.nombre;
       modalDesc.innerHTML = esc(elegido.descripcion || '') +
         (elegido.precio ? ` <span class="precio-modal">· ${esc(formatearPrecio(elegido.precio))}</span>` : '');
-      modalBotones.appendChild(botonModal('🎲 Otra vez', 'secundario', sugerir));
-      modalBotones.appendChild(botonModal('Listo, lo quiero ✓', 'primario', confirmarEleccion));
+      modalBotones.appendChild(botonModal('Otra vez', 'secundario', sugerir));
+      modalBotones.appendChild(botonModal('Listo, lo quiero', 'primario', confirmarEleccion));
     }
   }, 70);
 }
 
 function cerrarModal(){ clearInterval(girando); modalFondo.classList.remove('abierto'); }
 
-const FRASES_TOAST = ['¡Buena elección! 🌴', '¡Eso pinta delicioso! 😋', '¡La casa aprueba! ✨'];
+const FRASES_TOAST = ['¡Buena elección!', '¡Eso pinta delicioso!', '¡La casa aprueba!'];
 let toastTimer = null;
 function confirmarEleccion(){
   cerrarModal();
