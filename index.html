@@ -16,9 +16,9 @@
   CÓMO FUNCIONA LA DATA:
   · El menú pinta al instante con los datos embebidos (MENU_LOCAL,
     al final del <script>). Es una copia de respaldo del menú.
-  · Al mismo tiempo lee la hoja de Google Sheets (SHEET_URL). Si lo
-    logra, actualiza el menú en silencio. Si no, no pasa nada: el
-    cliente nunca ve un error, queda la copia local.
+  · Al mismo tiempo lee la hoja de Google Sheets (vía JSONP, sin CORS).
+    Si lo logra, actualiza el menú en silencio. Si no, no pasa nada:
+    el cliente nunca ve un error, queda la copia local.
   · IMPORTANTE: la hoja de Google Sheets debe estar compartida como
     "Cualquier persona con el vínculo puede VER". Para usar otra hoja,
     cambia SHEET_ID más abajo.
@@ -467,12 +467,12 @@
 'use strict';
 
 /* ============ FUENTE DE DATOS ============ */
-// Google Sheets publicado como CSV. La hoja debe estar compartida como
-// "Cualquier persona con el vínculo puede ver".
+// La hoja debe estar compartida como "Cualquier persona con el vínculo puede ver".
 // Para cambiar de hoja: reemplaza SHEET_ID por el id de la nueva hoja
 // (el tramo entre /d/ y /edit en la URL de tu Google Sheets).
+// Se carga como <script> (JSONP) y no con fetch: el endpoint de Google no
+// trae cabecera CORS, así que un fetch normal falla siempre desde GitHub Pages.
 const SHEET_ID = "1XfUtVJIsIkp2E2jF1Ascya7xqtbvS007EfLRglDBLto";
-const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
 /* ============ ICONOS Y DESCRIPCIONES POR CATEGORÍA ============ */
 // Si en el Excel aparece una categoría nueva, sale igual (con 🍽 por defecto).
@@ -548,26 +548,14 @@ function esc(t){
   return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// Parser de CSV propio: mantiene TODO como texto (no convierte "$140.000"
-// a número como hacía la librería anterior). Soporta comillas, comas y
-// saltos de línea dentro de una celda entrecomillada.
-function parsearCSV(texto){
-  const filas = [];
-  let campo = '', fila = [], enComillas = false;
-  for(let i = 0; i < texto.length; i++){
-    const c = texto[i];
-    if(enComillas){
-      if(c === '"'){
-        if(texto[i+1] === '"'){ campo += '"'; i++; }
-        else enComillas = false;
-      } else campo += c;
-    } else if(c === '"'){ enComillas = true; }
-    else if(c === ','){ fila.push(campo); campo = ''; }
-    else if(c === '\n'){ fila.push(campo); filas.push(fila); fila = []; campo = ''; }
-    else if(c !== '\r'){ campo += c; }
-  }
-  if(campo !== '' || fila.length){ fila.push(campo); filas.push(fila); }
-  const noVacias = filas.filter(f => f.some(x => x.trim() !== ''));
+// Convierte la respuesta de la API de Google Visualization (gviz) en filas
+// de objetos { columna: valor }, todo como texto (no convierte "$140.000"
+// a número). La primera fila con datos se usa como encabezados.
+function filasDesdeGviz(respuesta){
+  const filas = respuesta && respuesta.table && respuesta.table.rows;
+  if(!filas || !filas.length) return [];
+  const todas = filas.map(f => (f.c || []).map(c => (c && c.v != null) ? String(c.v) : ''));
+  const noVacias = todas.filter(f => f.some(x => x.trim() !== ''));
   if(!noVacias.length) return [];
   const encabezados = noVacias[0].map(h => h.trim());
   return noVacias.slice(1).map(f => {
@@ -894,25 +882,34 @@ function usarDatos(datos){
   aplicarFiltros();
 }
 
+// Carga la hoja vía <script> (JSONP): el endpoint gviz de Google no
+// responde con cabecera CORS, así que un fetch() normal falla siempre
+// desde un dominio distinto (como GitHub Pages). Un <script src> no
+// está sujeto a CORS, así que este truco es la forma confiable de
+// leer la hoja sin depender de proxies de terceros (que se caen seguido).
+function cargarSheetJSONP(){
+  return new Promise((resolve, reject) => {
+    const cb = '__gvizCB_' + Date.now();
+    const limpiar = () => { delete window[cb]; script.remove(); clearTimeout(temporizador); };
+    const temporizador = setTimeout(() => { limpiar(); reject(new Error('tiempo agotado')); }, 8000);
+    window[cb] = respuesta => { limpiar(); resolve(respuesta); };
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}`;
+    script.onerror = () => { limpiar(); reject(new Error('no se pudo cargar la hoja')); };
+    document.body.appendChild(script);
+  });
+}
+
 async function intentarSheetVivo(){
-  const intentos = [
-    SHEET_URL,
-    'https://corsproxy.io/?url=' + encodeURIComponent(SHEET_URL),
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(SHEET_URL)
-  ];
-  for(const url of intentos){
-    try{
-      const res = await fetch(url);
-      if(!res.ok) continue;
-      const texto = await res.text();
-      const filas = parsearCSV(texto);
-      if(filas.length && filas.some(f => String(f.nombre || '').trim())){
-        usarDatos(filas);
-        console.info('Menú actualizado desde Google Sheets ✓');
-        return;
-      }
-    }catch(e){ /* siguiente intento */ }
-  }
+  try{
+    const respuesta = await cargarSheetJSONP();
+    const filas = filasDesdeGviz(respuesta);
+    if(filas.length && filas.some(f => String(f.nombre || '').trim())){
+      usarDatos(filas);
+      console.info('Menú actualizado desde Google Sheets ✓');
+      return;
+    }
+  }catch(e){ /* se queda con la copia local */ }
   console.info('Google Sheets no disponible — mostrando la copia local del menú.');
 }
 
