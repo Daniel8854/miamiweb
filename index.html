@@ -154,10 +154,11 @@
   .logo-img{
     width:min(240px,64%); display:block; margin:0 auto;
     transition:filter var(--transicion);
+    background:transparent;
   }
   /* Respaldo: solo si el PNG no cargó y estamos usando el JPEG rectangular */
-  .logo-img[data-falló]{ mix-blend-mode:multiply; filter:brightness(1.14) contrast(1.05); }
-  [data-theme="night"] .logo-img[data-falló]{ mix-blend-mode:screen; filter:brightness(1.14) contrast(1.05) invert(1); }
+  .logo-img[data-fallo]{ mix-blend-mode:multiply; filter:brightness(1.14) contrast(1.05); }
+  [data-theme="night"] .logo-img[data-fallo]{ mix-blend-mode:screen; filter:brightness(1.14) contrast(1.05) invert(1); }
   .logo-texto{ display:none; font-family:'Bebas Neue',sans-serif; font-size:4rem; letter-spacing:.04em; margin:0; line-height:1; }
 
   .hero .sub{
@@ -500,8 +501,8 @@
       <span class="ciclo-etq" data-modo="dia"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>Día</span>
       <span class="ciclo-etq" data-modo="noche"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 14.7A8.6 8.6 0 1 1 9.3 3.5a7 7 0 0 0 11.2 11.2z"/></svg>Noche</span>
     </div>
-    <img src="logo-miami-oscuro.png" alt="MIAMI Gastrobar" class="logo-img" id="logoImg"
-         onerror="this.onerror=null; this.dataset.falló='1'; this.src='logo-miami.jpeg'">
+    <img src="logo-miami-oscuro-trimmed.png" alt="MIAMI Gastrobar" class="logo-img" id="logoImg"
+         onerror="this.onerror=null; this.dataset.fallo='1'; this.src='logo-miami.jpeg'">
     <h1 class="logo-texto" id="logoTexto">MIAMI</h1>
     <p class="sub">Café <b>·</b> Gastrobar <b>·</b> Disco</p>
     <p class="hero-linea" id="fraseHero">La tarde pide café y antojos.</p>
@@ -629,8 +630,8 @@ function ponerTema(tema){
   const frases = tema === 'day' ? FRASES_DIA : FRASES_NOCHE;
   fraseHero.textContent = frases[Math.floor(Math.random() * frases.length)];
   // Cambia el logo al PNG del tema (a menos que ya haya caído al JPEG de respaldo)
-  if(logoImg && !logoImg.dataset.falló){
-    logoImg.src = tema === 'day' ? 'logo-miami-claro.png' : 'logo-miami-oscuro.png';
+  if(logoImg && !logoImg.dataset.fallo){
+    logoImg.src = tema === 'day' ? 'logo-miami-claro-trimmed.png' : 'logo-miami-oscuro-trimmed.png';
   }
 }
 ponerTema(new Date().getHours() >= 18 || new Date().getHours() < 6 ? 'night' : 'day');
