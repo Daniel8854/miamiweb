@@ -130,9 +130,18 @@
   /* El hero necesita fondo propio: el logo usa mix-blend-mode y, con
      isolation, solo se funde con lo que está DENTRO del hero. */
   .hero{
-    position:relative; padding:30px 24px 18px; text-align:center;
-    overflow:hidden; isolation:isolate;
-    background:var(--fondo); transition:background var(--transicion);
+    position:relative; margin:16px 16px 0; padding:34px 24px 22px; text-align:center;
+    overflow:hidden; isolation:isolate; border-radius:28px;
+    background:linear-gradient(180deg,
+      color-mix(in srgb, var(--superficie) 80%, transparent),
+      color-mix(in srgb, var(--superficie) 58%, transparent));
+    backdrop-filter:blur(20px) saturate(1.6);
+    -webkit-backdrop-filter:blur(20px) saturate(1.6);
+    border:1px solid color-mix(in srgb, var(--tinta) 10%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--vidrio-brillo),
+      0 20px 44px -20px rgba(0,0,0,.4);
+    transition:background var(--transicion), box-shadow var(--transicion);
   }
   .hero-glow{
     position:absolute; inset:-45% -25% auto -25%; height:300px; z-index:-1;
@@ -175,7 +184,9 @@
   .estado-abierto{
     display:inline-flex; align-items:center; gap:7px; margin-top:12px;
     font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
-    background:var(--superficie); border:1px solid var(--linea); border-radius:999px;
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); border-radius:999px;
     padding:7px 14px; color:var(--tinta-suave);
   }
   .estado-abierto .punto{ width:8px; height:8px; border-radius:50%; background:#9aa5a0; }
@@ -187,7 +198,9 @@
   .contacto{
     display:inline-flex; align-items:center; gap:6px;
     font-size:.74rem; font-weight:800; padding:9px 14px; border-radius:999px;
-    background:var(--superficie); border:1px solid var(--linea); color:var(--tinta);
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); color:var(--tinta);
     text-decoration:none; box-shadow:var(--sombra); transition:transform 150ms;
   }
   .contacto:active{ transform:scale(.94); }
@@ -196,7 +209,9 @@
   .ciclo{
     position:absolute; top:16px; right:16px; z-index:2;
     display:flex; align-items:center; gap:3px;
-    background:var(--superficie); border:1px solid var(--linea); border-radius:999px; padding:4px;
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); border-radius:999px; padding:4px;
     box-shadow:var(--sombra); cursor:pointer; user-select:none;
   }
   .ciclo-etq{
@@ -208,35 +223,40 @@
   [data-theme="day"] .ciclo-etq[data-modo="dia"]{ background:var(--oro); color:#fff; }
   [data-theme="night"] .ciclo-etq[data-modo="noche"]{ background:var(--acento-2); color:#08101E; }
 
+  /* Acceso a la página principal, simétrico al selector día/noche */
+  .volver-inicio{
+    position:absolute; top:16px; left:16px; z-index:2;
+    display:inline-flex; align-items:center; gap:6px;
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); border-radius:999px;
+    padding:9px 14px; font-size:.68rem; font-weight:800; letter-spacing:.03em;
+    color:var(--tinta-suave); text-decoration:none;
+    box-shadow:var(--sombra); transition:color 200ms, transform 150ms;
+  }
+  .volver-inicio:hover{ color:var(--acento); }
+  .volver-inicio:active{ transform:scale(.94); }
+
   /* ================= CONTROLES STICKY ================= */
-  /* Barra superior "liquid glass": cristal difuminado y translúcido. El
-     fondo es un degradado semitransparente (más opaco arriba) y el
+  /* Barra "liquid glass" flotante: cristal difuminado, translúcido y con
+     esquinas redondeadas, separada de los bordes de la pantalla. El fondo
+     es un degradado semitransparente (más opaco arriba) y el
      backdrop-filter difumina + satura lo que pasa por detrás. Un brillo
-     interior superior y una línea inferior le dan el borde de vidrio. */
+     interior superior y un borde tenue le dan el borde de vidrio. */
   .controles{
-    position:sticky; top:0; z-index:20;
+    position:sticky; top:14px; z-index:20;
+    margin:16px 16px 0; border-radius:22px;
     background:linear-gradient(180deg,
-      color-mix(in srgb, var(--fondo) 78%, transparent),
-      color-mix(in srgb, var(--fondo) 55%, transparent));
+      color-mix(in srgb, var(--superficie) 88%, transparent),
+      color-mix(in srgb, var(--superficie) 66%, transparent));
     backdrop-filter:blur(20px) saturate(1.7);
     -webkit-backdrop-filter:blur(20px) saturate(1.7);
-    padding:12px 24px 12px;
-    border-bottom:1px solid color-mix(in srgb, var(--tinta) 8%, transparent);
+    padding:12px 20px;
+    border:1px solid color-mix(in srgb, var(--tinta) 12%, transparent);
     box-shadow:
       inset 0 1px 0 var(--vidrio-brillo),
-      0 10px 24px -20px rgba(0,0,0,.55);
+      0 18px 38px -16px rgba(0,0,0,.5);
     transition:background var(--transicion), box-shadow var(--transicion);
-  }
-  /* Franja de "derretido": justo debajo de la barra sigue difuminando el
-     contenido que va pasando, desvaneciéndose hacia abajo. Es lo que da la
-     sensación líquida cuando bajas por el menú. */
-  .controles::after{
-    content:''; position:absolute; left:0; right:0; top:100%; height:24px;
-    pointer-events:none;
-    backdrop-filter:blur(8px);
-    -webkit-backdrop-filter:blur(8px);
-    -webkit-mask:linear-gradient(180deg, rgba(0,0,0,.85), transparent);
-    mask:linear-gradient(180deg, rgba(0,0,0,.85), transparent);
   }
   .buscador{
     display:flex; align-items:center; gap:10px;
@@ -276,7 +296,7 @@
 
   /* ================= SECCIONES ================= */
   main{ padding:4px 24px 140px; }
-  .seccion{ padding-top:34px; scroll-margin-top:150px; }
+  .seccion{ padding-top:34px; scroll-margin-top:172px; }
   .cabecera-cat{ display:flex; align-items:center; gap:16px; }
   .cabecera-cat .regla{
     flex:1; height:1px;
@@ -459,15 +479,15 @@
      (menos margen a los lados), las tarjetas quedan más compactas y con
      mejor ritmo, y el logo se ve un poco más grande. */
   @media (max-width:440px){
-    .hero{ padding:24px 16px 14px; }
+    .hero{ margin:10px 10px 0; padding:24px 16px 14px; border-radius:22px; }
     .logo-img{ width:min(230px,74%); }
     .hero .sub{ font-size:.74rem; letter-spacing:.18em; }
     .contactos{ gap:7px; margin-top:12px; }
     .contacto{ font-size:.72rem; padding:8px 12px; }
 
-    .controles{ padding:10px 16px 0; }
+    .controles{ margin:14px 10px 0; padding:10px 16px; }
     main{ padding:4px 16px 128px; }
-    .seccion{ padding-top:28px; scroll-margin-top:138px; }
+    .seccion{ padding-top:28px; scroll-margin-top:158px; }
     .seccion h2{ font-size:1.8rem; }
 
     .plato{ grid-template-columns:70px 1fr; gap:13px; padding:15px; margin-bottom:12px; border-radius:18px; }
@@ -501,7 +521,8 @@
       <span class="ciclo-etq" data-modo="dia"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.6M12 18.9v2.6M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>Día</span>
       <span class="ciclo-etq" data-modo="noche"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.5 14.7A8.6 8.6 0 1 1 9.3 3.5a7 7 0 0 0 11.2 11.2z"/></svg>Noche</span>
     </div>
-    <img src="logo-miami-oscuro-trimmed.png" alt="MIAMI Gastrobar" class="logo-img" id="logoImg"
+    <a class="volver-inicio" href="index.html" aria-label="Volver a la página principal"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5h12V10"/></svg>Inicio</a>
+    <img src="logo-miami-claro-trimmed.png" alt="MIAMI Gastrobar" class="logo-img" id="logoImg"
          onerror="this.onerror=null; this.dataset.fallo='1'; this.src='logo-miami.jpeg'">
     <h1 class="logo-texto" id="logoTexto">MIAMI</h1>
     <p class="sub">Café <b>·</b> Gastrobar <b>·</b> Disco</p>
@@ -571,6 +592,7 @@
       <a class="accion principal" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Reservas</a>
       <a class="accion borde" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6" fill="currentColor" stroke="none"/></svg>Instagram</a>
       <a class="accion borde" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.5s7-7.2 7-12A7 7 0 0 0 5 9.5c0 4.8 7 12 7 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>Cómo llegar</a>
+      <a class="accion borde" href="index.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5h12V10"/></svg>Inicio</a>
     </div>
     <p class="direccion">Cl. 1 #6-2, Buenaventura, Valle del Cauca</p>
   </footer>
@@ -631,6 +653,8 @@ function ponerTema(tema){
   fraseHero.textContent = frases[Math.floor(Math.random() * frases.length)];
   // Cambia el logo al PNG del tema (a menos que ya haya caído al JPEG de respaldo)
   if(logoImg && !logoImg.dataset.fallo){
+    // OJO: los archivos están al revés de lo que dice su nombre —
+    // "oscuro.png" contiene letras BLANCAS y "claro.png" letras NEGRAS.
     logoImg.src = tema === 'day' ? 'logo-miami-claro-trimmed.png' : 'logo-miami-oscuro-trimmed.png';
   }
 }

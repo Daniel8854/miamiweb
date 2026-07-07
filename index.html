@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MIAMI Gastrobar — Café · Gastrobar · Disco en Buenaventura</title>
+<meta name="description" content="MIAMI Gastrobar — terraza, cocina para compartir, cócteles de autor y la disco premium de Buenaventura. De día café y buena mesa, de noche la rumba no para.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@1,9..144,500;1,9..144,600&display=swap" rel="stylesheet">
+
+<!--
+  ============================================================
+  PÁGINA PRINCIPAL — MIAMI GASTROBAR
+  ============================================================
+  Esta es la puerta de entrada del sitio (se abre en miamiweb/).
+  El menú interactivo (conectado al Excel/Google Sheets) vive en
+  menu.html — ese archivo no se tocó, sigue funcionando igual.
+
+  MURO DE FOTOS: se muestra en vivo con un iframe de Padlet
+  (https://padlet.com/miamigastrobar/muro). Si algún día cambia el
+  muro, solo hay que reemplazar esa URL en las dos apariciones
+  marcadas más abajo (el iframe y el botón "Sube tu foto").
+  ============================================================
+-->
+
+<style>
+  /* Mismos tokens de color y tipografía que menu.html, para que
+     ambas páginas se sientan como el mismo sitio. */
+  :root{
+    --fondo:#FAF6EF;
+    --superficie:#FFFFFF;
+    --superficie-2:#F1EADD;
+    --tinta:#2B2420;
+    --tinta-suave:#7A7168;
+    --acento:#C1633F;
+    --acento-2:#6E9083;
+    --oro:#C79A3D;
+    --rosa:#C97B86;
+    --linea:rgba(43,36,32,.09);
+    --sombra:0 10px 28px -16px rgba(43,36,32,.18);
+    --vidrio-brillo:rgba(255,255,255,.55);
+    --glow:none;
+    --transicion:650ms cubic-bezier(.22,.61,.36,1);
+  }
+  [data-theme="night"]{
+    --fondo:#14181F;
+    --superficie:#1D222B;
+    --superficie-2:#181C24;
+    --tinta:#F1ECE4;
+    --tinta-suave:#A6A9B0;
+    --acento:#D98B72;
+    --acento-2:#7FB0A6;
+    --oro:#E0BB6B;
+    --rosa:#D98B9E;
+    --linea:rgba(241,236,228,.10);
+    --sombra:0 14px 36px -16px rgba(0,0,0,.45);
+    --vidrio-brillo:rgba(255,255,255,.10);
+    --glow:0 0 12px;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--fondo); color:var(--tinta);
+    font-family:'Manrope',sans-serif;
+    transition:background var(--transicion), color var(--transicion);
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh; position:relative; overflow-x:hidden;
+  }
+  body::before{
+    content:''; position:fixed; inset:-20% -15%; z-index:0; pointer-events:none;
+    background:
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento) 24%, transparent), transparent 70%) 14% 16%/48% 44% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--oro) 18%, transparent), transparent 70%) 88% 12%/42% 40% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 22%, transparent), transparent 70%) 90% 88%/48% 44% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--rosa) 16%, transparent), transparent 70%) 10% 86%/42% 38% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 12%, transparent), transparent 75%) 50% 50%/56% 52% no-repeat;
+    filter:blur(64px); opacity:.72; will-change:transform;
+    animation:derivaAmbiente 46s ease-in-out infinite;
+    transition:opacity var(--transicion);
+  }
+  [data-theme="night"] body::before{ opacity:.5; }
+  @keyframes derivaAmbiente{ 0%,100%{ transform:translate3d(0,0,0); } 50%{ transform:translate3d(3%,-2.5%,0); } }
+  @media (prefers-reduced-motion:reduce){ body::before{ animation:none; } }
+
+  .marco{ max-width:900px; margin:0 auto; position:relative; z-index:1; }
+  a{ color:inherit; }
+  img{ max-width:100%; }
+
+  /* ================= NAV ================= */
+  /* Barra "liquid glass" flotante: cristal difuminado, translúcido y con
+     esquinas redondeadas, separada de los bordes de la pantalla. */
+  nav.top{
+    position:sticky; top:12px; z-index:30;
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    margin:12px 16px 0; border-radius:20px;
+    padding:12px 20px;
+    background:linear-gradient(180deg,
+      color-mix(in srgb, var(--superficie) 90%, transparent),
+      color-mix(in srgb, var(--superficie) 68%, transparent));
+    backdrop-filter:blur(20px) saturate(1.7);
+    -webkit-backdrop-filter:blur(20px) saturate(1.7);
+    border:1px solid color-mix(in srgb, var(--tinta) 12%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--vidrio-brillo),
+      0 16px 36px -16px rgba(0,0,0,.3);
+    transition:background var(--transicion), box-shadow var(--transicion);
+  }
+  .nav-marca{ display:flex; align-items:center; gap:8px; text-decoration:none; flex:none; }
+  .nav-marca img{ height:26px; width:auto; display:block; }
+  .nav-links{ display:flex; align-items:center; gap:20px; list-style:none; margin:0; padding:0; flex:1; justify-content:center; }
+  .nav-links a{ text-decoration:none; font-weight:700; font-size:.82rem; color:var(--tinta-suave); white-space:nowrap; transition:color 200ms; }
+  .nav-links a:hover{ color:var(--acento); }
+  .nav-derecha{ display:flex; align-items:center; gap:8px; flex:none; }
+  .ciclo{
+    display:flex; align-items:center; gap:2px;
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); border-radius:999px; padding:3px;
+    cursor:pointer; user-select:none;
+  }
+  .ciclo-etq{ font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; padding:6px 9px; border-radius:999px; color:var(--tinta-suave); transition:color 300ms, background 300ms; }
+  [data-theme="day"] .ciclo-etq[data-modo="dia"]{ background:var(--oro); color:#fff; }
+  [data-theme="night"] .ciclo-etq[data-modo="noche"]{ background:var(--acento-2); color:#08101E; }
+  .nav-menu-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--acento); color:#fff; text-decoration:none;
+    font-weight:800; font-size:.8rem; padding:9px 16px; border-radius:999px;
+    box-shadow:0 8px 18px -8px color-mix(in srgb, var(--acento) 70%, #000);
+    transition:transform 150ms;
+  }
+  .nav-menu-btn:active{ transform:scale(.95); }
+  @media (max-width:720px){ .nav-links{ display:none; } }
+
+  /* ================= HERO ================= */
+  .hero{
+    position:relative; isolation:isolate; overflow:hidden; text-align:center;
+    margin:16px 16px 0; padding:52px 24px 42px; border-radius:28px;
+    background:linear-gradient(180deg,
+      color-mix(in srgb, var(--superficie) 80%, transparent),
+      color-mix(in srgb, var(--superficie) 58%, transparent));
+    backdrop-filter:blur(20px) saturate(1.6);
+    -webkit-backdrop-filter:blur(20px) saturate(1.6);
+    border:1px solid color-mix(in srgb, var(--tinta) 10%, transparent);
+    box-shadow:
+      inset 0 1px 0 var(--vidrio-brillo),
+      0 20px 44px -20px rgba(0,0,0,.4);
+    transition:background var(--transicion), box-shadow var(--transicion);
+  }
+  .hero-glow{
+    position:absolute; inset:-30% -25% auto -25%; height:320px; z-index:-1;
+    background:
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento) 50%, transparent), transparent 70%) 15% 30%/55% 60% no-repeat,
+      radial-gradient(closest-side, color-mix(in srgb, var(--acento-2) 50%, transparent), transparent 70%) 85% 40%/50% 55% no-repeat;
+    filter:blur(34px); opacity:.5; transition:opacity var(--transicion);
+  }
+  [data-theme="night"] .hero-glow{ opacity:.38; }
+  .logo-img{ width:min(220px,60%); display:block; margin:0 auto 6px; }
+  .hero .eyebrow{ font-size:.78rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--acento); }
+  .hero h1{
+    font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.03em;
+    font-size:clamp(2.6rem,8vw,4.1rem); margin:8px 0 14px; line-height:.98;
+  }
+  [data-theme="night"] .hero h1{ text-shadow:var(--glow) color-mix(in srgb, var(--acento-2) 30%, transparent); }
+  .hero p.sub{ max-width:46ch; margin:0 auto; color:var(--tinta-suave); font-size:1.02rem; line-height:1.6; }
+  .hero-linea{ margin:14px 0 0; font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:1.02rem; color:var(--acento); }
+
+  .estado-abierto{
+    display:inline-flex; align-items:center; gap:7px; margin-top:16px;
+    font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); border-radius:999px;
+    padding:7px 14px; color:var(--tinta-suave);
+  }
+  .estado-abierto .punto{ width:8px; height:8px; border-radius:50%; background:#9aa5a0; }
+  .estado-abierto.si .punto{ background:#2ECC71; box-shadow:0 0 8px #2ECC71; }
+  .estado-abierto.si{ color:var(--tinta); }
+
+  .hero-cta{ margin-top:26px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:14px 24px; border-radius:14px; font-weight:800; font-size:.9rem;
+    text-decoration:none; cursor:pointer; border:1px solid var(--linea);
+    transition:transform 200ms; user-select:none;
+  }
+  .btn:active{ transform:scale(.96); }
+  .btn.primario{ background:var(--acento); color:#fff; border-color:var(--acento); }
+  .btn.secundario{ background:var(--superficie); color:var(--tinta); }
+
+  .contactos{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:20px; }
+  .contacto{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:.74rem; font-weight:800; padding:9px 14px; border-radius:999px;
+    background:color-mix(in srgb, var(--superficie) 72%, transparent);
+    backdrop-filter:blur(14px) saturate(1.6); -webkit-backdrop-filter:blur(14px) saturate(1.6);
+    border:1px solid var(--linea); color:var(--tinta);
+    text-decoration:none; box-shadow:var(--sombra); transition:transform 150ms;
+  }
+  .contacto:active{ transform:scale(.94); }
+  .contacto.wa{ border-color:color-mix(in srgb, #25D366 55%, transparent); }
+
+  /* ================= SECCIONES GENERALES ================= */
+  section{ padding:54px 24px; border-top:1px solid var(--linea); }
+  .eyebrow{ font-size:.74rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--acento-2); }
+  .concepto{ display:grid; gap:36px; grid-template-columns:1fr; }
+  @media (min-width:720px){ .concepto{ grid-template-columns:1.1fr .9fr; align-items:center; } }
+  .concepto h2{ font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.02em; font-size:2.3rem; margin:8px 0 14px; line-height:1.02; }
+  .concepto p{ color:var(--tinta-suave); line-height:1.7; margin:0 0 12px; }
+  .franja{
+    border-radius:28px; overflow:hidden; box-shadow:var(--sombra);
+    aspect-ratio:4/3;
+    background:linear-gradient(135deg, var(--acento), var(--acento-2));
+  }
+  .franja img{ width:100%; height:100%; object-fit:cover; display:block; border-radius:inherit; }
+
+  .datos{ display:grid; gap:20px; grid-template-columns:repeat(2,1fr); margin-top:30px; }
+  @media (min-width:520px){ .datos{ grid-template-columns:repeat(4,1fr); } }
+  .dato{ background:var(--superficie); border:1px solid var(--linea); border-radius:18px; padding:16px; box-shadow:var(--sombra); }
+  .dato .num{ font-family:'Bebas Neue',sans-serif; font-size:1.4rem; letter-spacing:.02em; color:var(--acento); }
+  .dato .etq{ font-size:.76rem; color:var(--tinta-suave); margin-top:3px; }
+
+  /* ---------- DISCO / NOCHE ---------- */
+  .disco-card{
+    background:linear-gradient(150deg, color-mix(in srgb, var(--rosa) 14%, var(--superficie)), var(--superficie));
+    border:1px solid color-mix(in srgb, var(--rosa) 35%, var(--linea));
+    border-radius:28px; padding:40px 30px; box-shadow:var(--sombra);
+  }
+  [data-theme="night"] .disco-card{ box-shadow:0 0 30px -10px color-mix(in srgb, var(--rosa) 40%, transparent); }
+  .disco-card h2{ font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.02em; font-size:2.1rem; margin:8px 0 12px; }
+  .disco-card > p{ color:var(--tinta-suave); line-height:1.7; max-width:56ch; margin:0 0 22px; }
+  .disco-lista{ display:grid; gap:12px; grid-template-columns:1fr; margin:0 0 26px; }
+  @media (min-width:600px){ .disco-lista{ grid-template-columns:1fr 1fr; } }
+  .disco-item{
+    display:flex; align-items:center; gap:12px;
+    background:var(--superficie); border:1px solid var(--linea); border-radius:16px;
+    padding:13px 16px; font-weight:700; font-size:.86rem;
+  }
+  .disco-item svg{ flex:none; color:var(--rosa); }
+
+  /* ---------- CTA (galería / reservas / menú) ---------- */
+  .cta-seccion{
+    background:var(--superficie); border-radius:28px; padding:44px 30px;
+    text-align:center; box-shadow:var(--sombra); border:1px solid var(--linea);
+  }
+  .cta-seccion h2{ font-family:'Bebas Neue',sans-serif; font-weight:400; letter-spacing:.02em; font-size:2rem; margin:8px 0 10px; }
+  .cta-seccion p{ color:var(--tinta-suave); max-width:50ch; margin:0 auto 22px; line-height:1.6; }
+
+  .padlet-marco{
+    border-radius:20px; overflow:hidden; border:1px solid var(--linea);
+    box-shadow:var(--sombra); margin:0 0 26px; height:560px; background:var(--superficie-2);
+  }
+  .padlet-marco iframe{ width:100%; height:100%; border:0; display:block; }
+  @media (max-width:520px){ .padlet-marco{ height:440px; } }
+
+  .menu-cta{
+    background:linear-gradient(150deg, color-mix(in srgb, var(--acento) 16%, var(--superficie)), var(--superficie));
+    border-color:color-mix(in srgb, var(--acento) 35%, var(--linea));
+  }
+  .menu-cta .btn.primario{ padding:16px 30px; font-size:.98rem; }
+
+  footer{ padding:40px 24px 50px; text-align:center; color:var(--tinta-suave); font-size:.8rem; border-top:1px solid var(--linea); }
+  .footer-marca{ font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:.06em; color:var(--tinta); margin:0 0 2px; }
+  .footer-tag{ margin:0 0 18px; font-size:.74rem; letter-spacing:.18em; text-transform:uppercase; font-weight:700; }
+  .horarios{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:0 0 20px; }
+  .horario{ background:var(--superficie); border:1px solid var(--linea); border-radius:16px; padding:12px 16px; line-height:1.6; min-width:210px; text-align:center; }
+  .horario-titulo{ display:block; font-weight:800; text-transform:uppercase; letter-spacing:.1em; font-size:.62rem; color:var(--acento); margin-bottom:4px; }
+  .acciones{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-bottom:18px; }
+  .accion{ display:inline-flex; align-items:center; gap:7px; padding:12px 18px; border-radius:999px; font-weight:800; font-size:.8rem; text-decoration:none; transition:transform 150ms; }
+  .accion:active{ transform:scale(.96); }
+  .accion.principal{ background:#25D366; color:#fff; }
+  .accion.borde{ background:var(--superficie); color:var(--tinta); border:1px solid var(--linea); }
+  .direccion{ margin:4px 0 0; }
+
+  @media (max-width:440px){
+    nav.top{ margin:10px 10px 0; padding:10px 14px; }
+    .hero{ margin:10px 10px 0; padding:34px 16px 26px; border-radius:22px; }
+    .hero h1{ font-size:2.3rem; }
+    section{ padding:44px 16px; }
+    .disco-card, .cta-seccion{ padding:30px 20px; }
+  }
+
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important; scroll-behavior:auto !important; } }
+</style>
+</head>
+<body data-theme="day">
+<div class="marco">
+
+  <nav class="top">
+    <a href="#inicio" class="nav-marca">
+      <img src="logo-miami-claro-trimmed.png" alt="MIAMI" id="navLogo"
+           onerror="this.onerror=null; this.src='logo-miami.jpeg'; this.style.height='34px';">
+    </a>
+    <ul class="nav-links">
+      <li><a href="#concepto">Concepto</a></li>
+      <li><a href="#disco">De noche</a></li>
+      <li><a href="#galeria">Galería</a></li>
+      <li><a href="#reservas">Reservas</a></li>
+    </ul>
+    <div class="nav-derecha">
+      <div class="ciclo" id="toggleCiclo" role="button" aria-label="Cambiar entre modo día y noche">
+        <span class="ciclo-etq" data-modo="dia">Día</span>
+        <span class="ciclo-etq" data-modo="noche">Noche</span>
+      </div>
+      <a class="nav-menu-btn" href="menu.html">Ver menú →</a>
+    </div>
+  </nav>
+
+  <!-- ================= HERO ================= -->
+  <header class="hero" id="inicio">
+    <div class="hero-glow"></div>
+    <img src="logo-miami-claro-trimmed.png" alt="MIAMI Gastrobar" class="logo-img" id="logoImg"
+         onerror="this.onerror=null; this.dataset.fallo='1'; this.src='logo-miami.jpeg'">
+    <p class="eyebrow" id="heroEyebrow">Café · Gastrobar · Terraza — Buenaventura</p>
+    <h1>Un pedazo de Miami<br>en la costa Pacífica.</h1>
+    <p class="sub" id="heroSub">Cocina para compartir, cócteles de autor y una terraza que no se apaga cuando cae el sol. Ven por la comida, quédate por el ambiente.</p>
+    <p class="hero-linea" id="fraseHero">La tarde pide terraza y buena mesa.</p>
+    <div class="estado-abierto" id="estadoAbierto"><span class="punto"></span><span id="estadoTexto">…</span></div>
+    <div class="hero-cta">
+      <a class="btn primario" href="menu.html">Ver el menú</a>
+      <a class="btn secundario" href="https://wa.me/573043992320?text=Hola%2C%20quiero%20reservar%20una%20mesa%20en%20Miami" target="_blank" rel="noopener">Reservar mesa</a>
+    </div>
+    <div class="contactos">
+      <a class="contacto wa" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="2.3"/><circle cx="17" cy="18" r="2.3"/><path d="M6 18h6l2-7h4M9.5 11h5l2.5 4"/></svg>Domicilio</a>
+      <a class="contacto wa" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Reservas</a>
+      <a class="contacto" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6" fill="currentColor" stroke="none"/></svg>Instagram</a>
+      <a class="contacto" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.5s7-7.2 7-12A7 7 0 0 0 5 9.5c0 4.8 7 12 7 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>Mapa</a>
+    </div>
+  </header>
+
+  <!-- ================= CONCEPTO ================= -->
+  <section id="concepto">
+    <div class="concepto">
+      <div>
+        <p class="eyebrow">¿Qué es Miami?</p>
+        <h2>Vibra playera, sabor de casa.</h2>
+        <p>Miami es el gastrobar de Buenaventura que combina el ambiente relajado de una terraza con vibra playera, una propuesta gastronómica variada y una experiencia pensada para compartir: hamburguesas, carnes, picadas, cócteles, cervezas y música en vivo.</p>
+        <p>Ideal para disfrutar con amigos, celebrar una ocasión especial o vivir la emoción de un partido en pantalla gigante — más que un restaurante, un lugar donde el buen sabor, el entretenimiento y un ambiente moderno se encuentran.</p>
+      </div>
+      <div class="franja"><img src="principal.png" alt="Terraza de MIAMI Gastrobar con vista al mar" loading="lazy"></div>
+    </div>
+
+    <div class="datos">
+      <div class="dato"><div class="num">3pm–2am</div><div class="etq">Viernes y sábado, con disco incluida</div></div>
+      <div class="dato"><div class="num">+40</div><div class="etq">Platos y cócteles</div></div>
+      <div class="dato"><div class="num">En vivo</div><div class="etq">DJ y música</div></div>
+      <div class="dato"><div class="num">Gigante</div><div class="etq">Pantalla para el deporte</div></div>
+    </div>
+  </section>
+
+  <!-- ================= DE NOCHE / DISCO ================= -->
+  <section id="disco">
+    <div class="disco-card">
+      <p class="eyebrow" style="color:var(--rosa)">De noche</p>
+      <h2>Cuando el sol se esconde, Miami se enciende.</h2>
+      <p>La misma terraza se transforma en la disco premium de Buenaventura: barra encendida, buena música y una pista lista para la rumba. Si estás pensando en dónde salir de fiesta esta noche, Miami es la opción.</p>
+      <div class="disco-lista">
+        <div class="disco-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>DJ y música en vivo</div>
+        <div class="disco-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg>Pista y buena luz</div>
+        <div class="disco-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12l-1.5 7.5a4.5 4.5 0 0 1-9 0z"/><path d="M10.5 15v4M13.5 15v4M9 21h6"/></svg>Cócteles de autor</div>
+        <div class="disco-item"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg>Eventos y deporte en pantalla gigante</div>
+      </div>
+      <a class="btn primario" href="https://wa.me/573043992320?text=Hola%2C%20quiero%20reservar%20una%20mesa%20para%20la%20rumba%20en%20Miami%20%F0%9F%8E%89" target="_blank" rel="noopener">Aparta tu mesa para la rumba</a>
+    </div>
+  </section>
+
+  <!-- ================= GALERÍA (Padlet en vivo) ================= -->
+  <section id="galeria">
+    <div class="cta-seccion">
+      <p class="eyebrow">Muro de la comunidad</p>
+      <h2>Lo que la gente comparte de Miami</h2>
+      <p>Fotos reales de quienes ya vivieron la experiencia, directo desde nuestro muro. Súbe la tuya y sé parte de la galería viva de Miami.</p>
+      <div class="padlet-marco">
+        <iframe src="https://padlet.com/miamigastrobar/muro" title="Muro de fotos de MIAMI Gastrobar" loading="lazy" allow="camera;microphone;geolocation"></iframe>
+      </div>
+      <a class="btn primario" href="https://padlet.com/miamigastrobar/muro" target="_blank" rel="noopener">Sube tu foto al muro</a>
+    </div>
+  </section>
+
+  <!-- ================= RESERVAS ================= -->
+  <section id="reservas">
+    <div class="cta-seccion">
+      <p class="eyebrow">Mesa asegurada</p>
+      <h2>Reserva por WhatsApp</h2>
+      <p>Escríbenos con la fecha, hora y número de personas — te confirmamos en minutos, directo desde tu celular.</p>
+      <a class="btn primario" href="https://wa.me/573043992320?text=Hola%2C%20quiero%20reservar%20una%20mesa%20en%20Miami" target="_blank" rel="noopener">Reservar por WhatsApp</a>
+    </div>
+  </section>
+
+  <!-- ================= MENÚ ================= -->
+  <section id="menu-cta">
+    <div class="cta-seccion menu-cta">
+      <p class="eyebrow">Cocina y barra</p>
+      <h2>Nuestro menú completo</h2>
+      <p>Hamburguesas, carnes, picadas, cócteles, cervezas y más — el menú se actualiza directamente por nuestro equipo, siempre al día.</p>
+      <a class="btn primario" href="menu.html">Ver menú interactivo →</a>
+    </div>
+  </section>
+
+  <footer>
+    <p class="footer-marca">MIAMI</p>
+    <p class="footer-tag">Café · Gastrobar · Disco — Buenaventura</p>
+    <div class="horarios">
+      <div class="horario">
+        <span class="horario-titulo">Lunes a jueves</span>
+        Abierto desde las 3pm<br>
+        Cocina hasta las 10pm · Barra hasta las 12am
+      </div>
+      <div class="horario">
+        <span class="horario-titulo">Viernes a domingo</span>
+        Abierto desde las 3pm<br>
+        Cocina hasta las 11pm · Barra hasta las 2am
+      </div>
+    </div>
+    <div class="acciones">
+      <a class="accion principal" href="https://wa.me/573116774037?text=Hola%2C%20quisiera%20realizar%20un%20domicilio%20%F0%9F%9B%B5" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="18" r="2.3"/><circle cx="17" cy="18" r="2.3"/><path d="M6 18h6l2-7h4M9.5 11h5l2.5 4"/></svg>Domicilio</a>
+      <a class="accion principal" href="https://wa.me/573043992320?text=Hola%2C%20quisiera%20hacer%20una%20reserva%20%E2%9C%A8" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg>Reservas</a>
+      <a class="accion borde" href="https://www.instagram.com/gastrobarmiami/" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="3.6"/><circle cx="17" cy="7" r=".6" fill="currentColor" stroke="none"/></svg>Instagram</a>
+      <a class="accion borde" href="https://maps.app.goo.gl/BHB3vMNQT9rUwvPH9" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21.5s7-7.2 7-12A7 7 0 0 0 5 9.5c0 4.8 7 12 7 12z"/><circle cx="12" cy="9.5" r="2.4"/></svg>Cómo llegar</a>
+      <a class="accion borde" href="menu.html"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Menú</a>
+    </div>
+    <p class="direccion">Cl. 1 #6-2, Buenaventura, Valle del Cauca</p>
+  </footer>
+</div>
+
+<script>
+'use strict';
+const body = document.body;
+const fraseHero = document.getElementById('fraseHero');
+const heroEyebrow = document.getElementById('heroEyebrow');
+const heroSub = document.getElementById('heroSub');
+const logoImg = document.getElementById('logoImg');
+const navLogo = document.getElementById('navLogo');
+
+const COPY = {
+  day: {
+    eyebrow: 'Café · Gastrobar · Terraza — Buenaventura',
+    sub: 'Cocina para compartir, cócteles de autor y una terraza que no se apaga cuando cae el sol. Ven por la comida, quédate por el ambiente.',
+    frases: ['La tarde pide terraza y buena mesa.', 'Ideal para compartir con amigos.', 'Ven por el partido, quédate por el ambiente.']
+  },
+  night: {
+    eyebrow: 'Disco Premium — La rumba de Buenaventura',
+    sub: 'Cuando el sol se esconde, la barra se enciende: DJ en vivo, pista y cócteles de autor. Miami es la disco premium que Buenaventura estaba esperando.',
+    frases: ['La noche es tuya en Miami.', 'Modo disco: activado.', 'Aquí la rumba no para.']
+  }
+};
+
+function ponerTema(tema){
+  body.setAttribute('data-theme', tema);
+  const c = tema === 'day' ? COPY.day : COPY.night;
+  heroEyebrow.textContent = c.eyebrow;
+  heroSub.textContent = c.sub;
+  fraseHero.textContent = c.frases[Math.floor(Math.random() * c.frases.length)];
+  // OJO: los archivos están al revés de lo que dice su nombre —
+  // "oscuro.png" contiene letras BLANCAS y "claro.png" letras NEGRAS.
+  const archivo = tema === 'day' ? 'logo-miami-claro-trimmed.png' : 'logo-miami-oscuro-trimmed.png';
+  if(logoImg && !logoImg.dataset.fallo) logoImg.src = archivo;
+  if(navLogo && !navLogo.dataset.fallo) navLogo.src = archivo;
+}
+ponerTema(new Date().getHours() >= 18 || new Date().getHours() < 6 ? 'night' : 'day');
+document.getElementById('toggleCiclo').addEventListener('click', () => {
+  ponerTema(body.getAttribute('data-theme') === 'day' ? 'night' : 'day');
+});
+navLogo.addEventListener('error', () => { navLogo.dataset.fallo = '1'; navLogo.src = 'logo-miami.jpeg'; navLogo.style.height = '34px'; });
+
+/* Abierto / cerrado, mismos horarios que el menú */
+(function estadoApertura(){
+  const ahora = new Date();
+  const dia = ahora.getDay();
+  const h = ahora.getHours() + ahora.getMinutes()/60;
+  const finDeSemana = (dia === 5 || dia === 6 || dia === 0);
+  const cierre = finDeSemana ? 26 : 24;
+  const abierto = (h >= 15) || (h < cierre - 24);
+  const el = document.getElementById('estadoAbierto');
+  const txt = document.getElementById('estadoTexto');
+  if(abierto){ el.classList.add('si'); txt.textContent = 'Abierto ahora'; }
+  else { txt.textContent = 'Abrimos a las 3pm'; }
+})();
+</script>
+</body>
+</html>
