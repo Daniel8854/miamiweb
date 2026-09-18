@@ -32,25 +32,25 @@
   MENÚ DIGITAL — MIAMI GASTROBAR
   ============================================================
   CÓMO FUNCIONA LA DATA:
-  · El menú pinta al instante con los datos embebidos (MENU_LOCAL,
-    al final del <script>). Es una copia de respaldo del menú.
-  · Al mismo tiempo lee la hoja de Google Sheets (vía JSONP, sin CORS).
-    Si lo logra, actualiza el menú en silencio. Si no, no pasa nada:
-    el cliente nunca ve un error, queda la copia local.
-  · IMPORTANTE: la hoja de Google Sheets debe estar compartida como
-    "Cualquier persona con el vínculo puede VER". Para usar otra hoja,
-    cambia SHEET_ID más abajo.
+  · El menú es 100% estático: todo vive en MENU_ITEMS(), al final del
+    <script>. No depende de Google Sheets ni de ningún servicio externo
+    que se pueda caer — para cambiar un precio, agregar un plato o poner
+    una foto, se edita directamente ese arreglo.
+  · Cada plato es un objeto: { categoria, nombre, descripcion, precio }.
+    Opcionales:
+    · imagen — ruta de la foto del producto. Puede ser relativa al repo
+      (ej. "menu/nachos-sencillo.jpeg", con la foto dentro de la carpeta
+      /menu) o una URL completa (https://...). Si se omite, se muestra
+      un marcador de color con la inicial del plato.
+    · etiquetas — valores separados por espacio: favorito, nuevo,
+      promocion. Activa los filtros de arriba automáticamente.
+  · El orden de categorías y platos en pantalla respeta el orden en que
+    aparecen dentro de MENU_ITEMS().
 
-  COLUMNAS DE LA HOJA: categoria | nombre | descripcion | precio
-  Opcionales:
-  · imagen_url — link directo a la foto del producto. Si está vacía,
-    se muestra un marcador de color con el ícono de la categoría.
-    OJO: los links de Discord (media.discordapp.net) EXPIRAN en ~24h.
-    Para fotos permanentes usa un hosting estable (imgur, imgbb, o
-    súbelas al repo). Si un link expira, se ve el marcador de color.
-  · etiquetas — valores separados por espacio: favorito, nuevo,
-    promocion. Activa los filtros de arriba automáticamente.
-  El orden de categorías y platos respeta el orden de las filas.
+  CÓMO AGREGAR UNA FOTO A UN PLATO EXISTENTE:
+    1. Poné el archivo de la foto dentro de la carpeta /menu del repo.
+    2. En el objeto del plato correspondiente, agregá:
+       imagen:'menu/nombre-del-archivo.jpeg'
 
   EL LOGO: usa dos PNG con fondo TRANSPARENTE, en la misma carpeta:
     · logo-miami-oscuro.png → letras oscuras, para el modo DÍA (fondo claro)
@@ -619,16 +619,8 @@
 <script>
 'use strict';
 
-/* ============ FUENTE DE DATOS ============ */
-// La hoja debe estar compartida como "Cualquier persona con el vínculo puede ver".
-// Para cambiar de hoja: reemplaza SHEET_ID por el id de la nueva hoja
-// (el tramo entre /d/ y /edit en la URL de tu Google Sheets).
-// Se carga como <script> (JSONP) y no con fetch: el endpoint de Google no
-// trae cabecera CORS, así que un fetch normal falla siempre desde GitHub Pages.
-const SHEET_ID = "1XfUtVJIsIkp2E2jF1Ascya7xqtbvS007EfLRglDBLto";
-
 /* ============ DESCRIPCIONES POR CATEGORÍA ============ */
-// Si en el Excel aparece una categoría nueva, sale igual (sin descripción).
+// Si en MENU_ITEMS() aparece una categoría nueva, sale igual (sin descripción).
 const CATEGORIA_META = {
   'promociones':     { desc:'Combos pensados para la mesa entera.' },
   'desgranados':     { desc:'Maíz desgranado con todo lo bueno encima.' },
@@ -636,6 +628,8 @@ const CATEGORIA_META = {
   'perras y perros': { desc:'Al estilo de la casa, bien cargados.' },
   'nachos':          { desc:'Para meter la mano al centro.' },
   'picadas':         { desc:'Proteína de sobra, para compartir.' },
+  'cortes':          { desc:'Carnes maduras a la parrilla, con los acompañantes de la casa.' },
+  'hamburguesas':    { desc:'Angus o pollo, siempre con papas.' },
   'sodas miami':     { desc:'Sodas artesanales firmadas por la casa.' },
   'café':            { desc:'Extracción espresso, tarde de café.' },
   'bebidas':         { desc:'Frías y refrescantes.' },
@@ -707,23 +701,6 @@ function esc(t){
   return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-// Convierte la respuesta de la API de Google Visualization (gviz) en filas
-// de objetos { columna: valor }, todo como texto (no convierte "$140.000"
-// a número). La primera fila con datos se usa como encabezados.
-function filasDesdeGviz(respuesta){
-  const filas = respuesta && respuesta.table && respuesta.table.rows;
-  if(!filas || !filas.length) return [];
-  const todas = filas.map(f => (f.c || []).map(c => (c && c.v != null) ? String(c.v) : ''));
-  const noVacias = todas.filter(f => f.some(x => x.trim() !== ''));
-  if(!noVacias.length) return [];
-  const encabezados = noVacias[0].map(h => h.trim());
-  return noVacias.slice(1).map(f => {
-    const obj = {};
-    encabezados.forEach((h, i) => { obj[h] = (f[i] || '').trim(); });
-    return obj;
-  });
-}
-
 // Precios en pesos colombianos (COP). Si la celda ya trae "$", se respeta
 // tal cual. Si es un número suelto (ej. 140000 o 140.000), lo formatea a
 // "$140.000". Cualquier otro texto se deja igual.
@@ -740,13 +717,14 @@ function metaDe(cat){
 }
 
 // Acepta la columna de imagen con varios nombres: "imagen url",
-// "imagen_url", "imagen", "foto", "url imagen"…
+// "imagen_url", "imagen", "foto", "url imagen"… Puede ser una URL completa
+// (https://...) o una ruta relativa dentro del repo (ej. "menu/nachos.jpeg").
 function imagenDe(fila){
   for(const clave of Object.keys(fila)){
     const k = normalizar(clave).replace(/[^a-z]/g,'');
     if(k === 'imagenurl' || k === 'imagen' || k === 'foto' || k === 'urlimagen' || k === 'fotourl'){
       const v = String(fila[clave] || '').trim();
-      if(/^https?:\/\//i.test(v)) return v;
+      if(v) return v;
     }
   }
   return '';
@@ -1051,113 +1029,88 @@ window.addEventListener('scroll', () => {
 botonSubir.addEventListener('click', () => window.scrollTo({ top:0, behavior:'smooth' }));
 
 /* ============ CARGA DE DATOS ============ */
-// 1) Pinta al instante con la copia local embebida.
-// 2) Trae la hoja viva de Google Sheets; si lo logra, re-renderiza.
 function usarDatos(datos){
   platosData = datos;
   renderizar(datos);
   aplicarFiltros();
 }
+usarDatos(MENU_ITEMS());
 
-// Carga la hoja vía <script> (JSONP): el endpoint gviz de Google no
-// responde con cabecera CORS, así que un fetch() normal falla siempre
-// desde un dominio distinto (como GitHub Pages). Un <script src> no
-// está sujeto a CORS, así que este truco es la forma confiable de
-// leer la hoja sin depender de proxies de terceros (que se caen seguido).
-function cargarSheetJSONP(){
-  return new Promise((resolve, reject) => {
-    const cb = '__gvizCB_' + Date.now();
-    const limpiar = () => { delete window[cb]; script.remove(); clearTimeout(temporizador); };
-    const temporizador = setTimeout(() => { limpiar(); reject(new Error('tiempo agotado')); }, 8000);
-    window[cb] = respuesta => { limpiar(); resolve(respuesta); };
-    const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:${cb}`;
-    script.onerror = () => { limpiar(); reject(new Error('no se pudo cargar la hoja')); };
-    document.body.appendChild(script);
-  });
-}
-
-async function intentarSheetVivo(){
-  try{
-    const respuesta = await cargarSheetJSONP();
-    const filas = filasDesdeGviz(respuesta);
-    if(filas.length && filas.some(f => String(f.nombre || '').trim())){
-      usarDatos(filas);
-      console.info('Menú actualizado desde Google Sheets ✓');
-      return;
-    }
-  }catch(e){ /* se queda con la copia local */ }
-  console.info('Google Sheets no disponible — mostrando la copia local del menú.');
-}
-
-usarDatos(MENU_LOCAL());
-intentarSheetVivo();
-
-/* ============ COPIA LOCAL DEL MENÚ (respaldo) ============ */
-// Se usa solo si Google Sheets no responde. Mismo formato que la hoja.
+/* ============ MENÚ — fuente única de verdad ============ */
+// Editar acá directamente: agregar/quitar platos, cambiar precios,
+// poner fotos (ver la nota "CÓMO AGREGAR UNA FOTO" arriba del <style>).
 // Función (y no constante) para poder declararla al final del archivo.
-function MENU_LOCAL(){ return [
-  { categoria:'Promociones', nombre:'Combo 1: Cantarito', descripcion:'Cantarito de tequila + Nachos Miami + 6 cervezas.', precio:'$140.000', etiquetas:'promocion' },
-  { categoria:'Promociones', nombre:'Combo 2: Picada Familiar', descripcion:'Picada Familiar + botella de aguardiente + 6 cervezas.', precio:'$180.000', etiquetas:'promocion' },
-  { categoria:'Desgranados', nombre:'Desgranado Sencillo', descripcion:'Ranchera, carne desmechada o pollo desmechado.', precio:'$25.000' },
-  { categoria:'Desgranados', nombre:'Desgranado Mixto', descripcion:'Dos proteínas a elección, sobre lechuga, papa a la francesa, queso gratinado, maicitos, ripio y piña caramelizada.', precio:'$30.000', etiquetas:'favorito' },
-  { categoria:'Desgranados', nombre:'Desgranado Triple', descripcion:'Tres proteínas a elección, sobre lechuga, papa a la francesa, queso gratinado, maicitos, ripio y piña caramelizada.', precio:'$35.000' },
-  { categoria:'Salchipapas', nombre:'Salchipapa Americana', descripcion:'Papas a la francesa, salchicha, tocineta crujiente y salsa de queso cheddar.', precio:'$18.000' },
-  { categoria:'Salchipapas', nombre:'Salchipapa Gratinada', descripcion:'Papas a la francesa y salchicha bañadas en queso mozzarella y cheddar gratinado.', precio:'$21.000' },
-  { categoria:'Salchipapas', nombre:'Salchiranchera', descripcion:'Papas a la francesa, salchicha, tocineta crujiente y ranchera de la casa.', precio:'$21.000' },
-  { categoria:'Salchipapas', nombre:'Ranchera Gratinada', descripcion:'Papas a la francesa gratinadas, bañadas en ranchera y queso fundido.', precio:'$25.000' },
-  { categoria:'Salchipapas', nombre:'Salchi Carne', descripcion:'Papas a la francesa con salchicha y carne desmechada.', precio:'$25.000' },
-  { categoria:'Salchipapas', nombre:'Salchi Pollo', descripcion:'Papas a la francesa con salchicha y pollo desmechado.', precio:'$25.000' },
-  { categoria:'Perras y Perros', nombre:'Perra Miami', descripcion:'120g de tocineta ahumada sobre base de ensalada, cebolla caramelizada y porción de papas.', precio:'$27.000' },
-  { categoria:'Perras y Perros', nombre:'Perra Empotrada', descripcion:'120g de tocineta ahumada, base de ensalada, cebolla caramelizada, queso fundido y salchicha americana, con porción de papas.', precio:'$32.000', etiquetas:'favorito' },
-  { categoria:'Perras y Perros', nombre:'Perro Miami', descripcion:'Salchicha americana con queso fundido, papas, tocineta crujiente, ripio de papa y mermelada.', precio:'$23.000' },
-  { categoria:'Perras y Perros', nombre:'Perro Miami sin papas', descripcion:'La misma receta del Perro Miami, sin porción de papas.', precio:'$18.000' },
-  { categoria:'Nachos', nombre:'Nachos Sencillo', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 1 proteína a elección (pollo, carne o ranchera).', precio:'$40.000' },
-  { categoria:'Nachos', nombre:'Nachos Mixto', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 2 proteínas a elección (pollo, carne o ranchera).', precio:'$45.000' },
-  { categoria:'Nachos', nombre:'Nachos Triple', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 3 proteínas a elección (pollo, carne o ranchera).', precio:'$50.000' },
-  { categoria:'Picadas', nombre:'Picada Miami (600g)', descripcion:'600g de proteína: pechuga de pollo, lomo de cerdo, costilla de cerdo, lomo de res y chorizo, con papas a la francesa, plátano verde, aros de cebolla y arepa frita.', precio:'$50.000', etiquetas:'favorito' },
-  { categoria:'Picadas', nombre:'Picada Miami con chicharrón', descripcion:'La Picada Miami (600g), con adición de chicharrón.', precio:'$65.000' },
-  { categoria:'Picadas', nombre:'Picada 1200g', descripcion:'1200g de proteína: selección de pechuga de pollo, lomo de cerdo, costilla de cerdo, lomo de res y chorizo, sobre papas a la francesa, plátano verde, aros de cebolla y arepa frita.', precio:'$90.000', etiquetas:'favorito' },
-  { categoria:'Picadas', nombre:'Picada 1200g con chicharrón', descripcion:'La Picada de 1200g, con adición de chicharrón.', precio:'$105.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Miami', descripcion:'Soda artesanal de la casa.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Maracuyá', descripcion:'Soda artesanal sabor maracuyá.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Lychee', descripcion:'Soda artesanal sabor lychee.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Fresa', descripcion:'Soda artesanal sabor fresa.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Frutos Rojos', descripcion:'Soda artesanal sabor frutos rojos.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Frutos Amarillos', descripcion:'Soda artesanal sabor frutos amarillos.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Lulo', descripcion:'Soda artesanal sabor lulo.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Mandarina', descripcion:'Soda artesanal sabor mandarina.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Mango Chelada', descripcion:'Soda de mango estilo chelada.', precio:'$15.000' },
-  { categoria:'Sodas Miami', nombre:'Soda Mango', descripcion:'Soda artesanal sabor mango.', precio:'$15.000' },
-  { categoria:'Café', nombre:'Americano Espresso', descripcion:'Café negro de extracción espresso.', precio:'$4.000' },
-  { categoria:'Café', nombre:'Espresso Doble', descripcion:'Doble shot de espresso.', precio:'$6.000' },
-  { categoria:'Café', nombre:'Latte', descripcion:'Espresso con leche vaporizada.', precio:'$6.000' },
-  { categoria:'Café', nombre:'Capuchino', descripcion:'Espresso con leche vaporizada y espuma cremosa.', precio:'$10.000' },
-  { categoria:'Café', nombre:'Frapuchino', descripcion:'Café frío batido con hielo y leche.', precio:'$12.000' },
-  { categoria:'Bebidas', nombre:'Limonada de Coco', descripcion:'Limonada natural con leche de coco.', precio:'$15.000' },
-  { categoria:'Bebidas', nombre:'Cerezada', descripcion:'Bebida refrescante sabor cereza.', precio:'$15.000' },
-  { categoria:'Bebidas', nombre:'Hierba Buena', descripcion:'Limonada con hierbabuena fresca.', precio:'$15.000' },
-  { categoria:'Bebidas', nombre:'Limonada de Lychee', descripcion:'Limonada natural sabor lychee.', precio:'$15.000' },
-  { categoria:'Bebidas', nombre:'Limonada Natural', descripcion:'Limonada natural clásica.', precio:'$8.000' },
-  { categoria:'Bebidas', nombre:'Gaseosas', descripcion:'Línea de gaseosas variadas.', precio:'$5.000' },
-  { categoria:'Bebidas', nombre:'Ginger', descripcion:'Ginger ale.', precio:'$6.000' },
-  { categoria:'Bebidas', nombre:'Gatorade', descripcion:'Bebida hidratante.', precio:'$9.000' },
-  { categoria:'Bebidas', nombre:'Electrolit', descripcion:'Bebida rehidratante.', precio:'$12.000' },
-  { categoria:'Bebidas', nombre:'Soda', descripcion:'Soda simple.', precio:'$6.000' },
-  { categoria:'Bebidas', nombre:'Agua', descripcion:'Agua en botella.', precio:'$5.000' },
-  { categoria:'Bebidas', nombre:'Jugo Hit', descripcion:'Jugo de caja Hit.', precio:'$5.000' },
-  { categoria:'Jugos Naturales', nombre:'Jugo de Maracuyá', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
-  { categoria:'Jugos Naturales', nombre:'Jugo de Mango', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
-  { categoria:'Jugos Naturales', nombre:'Jugo de Frutos Rojos', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
-  { categoria:'Jugos Naturales', nombre:'Jugo de Lulo', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
-  { categoria:'Jugos Naturales', nombre:'Jugo de Piña', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' },
-  { categoria:'Jugos Naturales', nombre:'Limonada de Leche', descripcion:'Limonada natural preparada con leche.', precio:'$12.000' },
-  { categoria:'Jugos Naturales', nombre:'Jarra de Cerezada', descripcion:'Jarra para compartir, sabor cereza.', precio:'$30.000' },
-  { categoria:'Jugos Naturales', nombre:'Jarra de Limonada', descripcion:'Jarra de limonada natural para compartir.', precio:'$25.000' },
-  { categoria:'Shots', nombre:'Semen de Pitufo', descripcion:'Shot de autor de la casa.', precio:'$15.000' },
-  { categoria:'Shots', nombre:'Sesos Miami', descripcion:'Shot de autor de la casa.', precio:'$15.000' },
-  { categoria:'Shots', nombre:'Mamadita', descripcion:'Shot de autor de la casa.', precio:'$15.000' },
-  { categoria:'Shots', nombre:'Tablazo', descripcion:'Shot de autor de la casa.', precio:'$15.000' }
+function MENU_ITEMS(){ return [
+  { categoria:'Promociones', nombre:'Combo 1: Cantarito', descripcion:'Cantarito de tequila + Nachos Miami + 6 cervezas.', precio:'$140.000', etiquetas:'promocion' , imagen:'menu/cantarito.jpeg' },
+  { categoria:'Promociones', nombre:'Combo 2: Picada Familiar', descripcion:'Picada Familiar + botella de aguardiente + 6 cervezas.', precio:'$180.000', etiquetas:'promocion' , imagen:'menu/picada-familiar.jpeg' },
+  { categoria:'Desgranados', nombre:'Desgranado Sencillo', descripcion:'Ranchera, carne desmechada o pollo desmechado.', precio:'$25.000', imagen:'menu/desgranado-sencillo.jpeg' },
+  { categoria:'Desgranados', nombre:'Desgranado Mixto', descripcion:'Dos proteínas a elección, sobre lechuga, papa a la francesa, queso gratinado, maicitos, ripio y piña caramelizada.', precio:'$30.000', etiquetas:'favorito', imagen:'menu/desgranado-mixto.jpeg' },
+  { categoria:'Desgranados', nombre:'Desgranado Triple', descripcion:'Tres proteínas a elección, sobre lechuga, papa a la francesa, queso gratinado, maicitos, ripio y piña caramelizada.', precio:'$35.000', imagen:'menu/desgranado-triple.jpeg' },
+  { categoria:'Salchipapas', nombre:'Salchipapa Americana', descripcion:'Papas a la francesa, salchicha, tocineta crujiente y salsa de queso cheddar.', precio:'$18.000' , imagen:'menu/salchipapa-americana.jpeg' },
+  { categoria:'Salchipapas', nombre:'Salchipapa Gratinada', descripcion:'Papas a la francesa y salchicha bañadas en queso mozzarella y cheddar gratinado.', precio:'$21.000' , imagen:'menu/salchipapa-gratinada.jpeg' },
+  { categoria:'Salchipapas', nombre:'Salchiranchera', descripcion:'Papas a la francesa, salchicha, tocineta crujiente y ranchera de la casa.', precio:'$21.000' , imagen:'menu/salchiranchera.jpeg' },
+  { categoria:'Salchipapas', nombre:'Ranchera Gratinada', descripcion:'Papas a la francesa gratinadas, bañadas en ranchera y queso fundido.', precio:'$25.000' , imagen:'menu/ranchera-gratinada.jpeg' },
+  { categoria:'Salchipapas', nombre:'Salchi Carne', descripcion:'Papas a la francesa con salchicha y carne desmechada.', precio:'$25.000' , imagen:'menu/salchi-carne.jpeg' },
+  { categoria:'Salchipapas', nombre:'Salchi Pollo', descripcion:'Papas a la francesa con salchicha y pollo desmechado.', precio:'$25.000' , imagen:'menu/salchi-pollo.jpeg' },
+  { categoria:'Perras y Perros', nombre:'Perra Miami', descripcion:'120g de tocineta ahumada sobre base de ensalada, cebolla caramelizada y porción de papas.', precio:'$27.000', imagen:'menu/perra-miami.jpeg' },
+  { categoria:'Perras y Perros', nombre:'Perra Empotrada', descripcion:'120g de tocineta ahumada, base de ensalada, cebolla caramelizada, queso fundido y salchicha americana, con porción de papas.', precio:'$32.000', etiquetas:'favorito' , imagen:'menu/perra-empotrada.jpeg' },
+  { categoria:'Perras y Perros', nombre:'Perro Miami', descripcion:'Salchicha americana con queso fundido, papas, tocineta crujiente, ripio de papa y mermelada.', precio:'$23.000' , imagen:'menu/perro-miami.jpeg' },
+  { categoria:'Perras y Perros', nombre:'Perro Miami sin papas', descripcion:'La misma receta del Perro Miami, sin porción de papas.', precio:'$18.000' , imagen:'menu/perro-miami-sin-papas.jpeg' },
+  { categoria:'Nachos', nombre:'Nachos Sencillo', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 1 proteína a elección (pollo, carne o ranchera).', precio:'$40.000', imagen:'menu/nachos-sencillo.jpeg' },
+  { categoria:'Nachos', nombre:'Nachos Mixto', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 2 proteínas a elección (pollo, carne o ranchera).', precio:'$45.000' , imagen:'menu/nachos-mixto.jpeg' },
+  { categoria:'Nachos', nombre:'Nachos Triple', descripcion:'Maíz natural, nachos, queso crema y pico de gallo con 3 proteínas a elección (pollo, carne o ranchera).', precio:'$50.000' , imagen:'menu/nachos-triple.jpeg' },
+  { categoria:'Picadas', nombre:'Picada Miami (600g)', descripcion:'600g de proteína: pechuga de pollo, lomo de cerdo, costilla de cerdo, lomo de res y chorizo, con papas a la francesa, plátano verde, aros de cebolla y arepa frita.', precio:'$50.000', etiquetas:'favorito', imagen:'menu/picada-miami.jpeg' },
+  { categoria:'Picadas', nombre:'Picada Miami con chicharrón', descripcion:'La Picada Miami (600g), con adición de chicharrón.', precio:'$65.000' , imagen:'menu/picada-con-chicharron.jpeg' },
+  { categoria:'Picadas', nombre:'Picada 1200g', descripcion:'1200g de proteína: selección de pechuga de pollo, lomo de cerdo, costilla de cerdo, lomo de res y chorizo, sobre papas a la francesa, plátano verde, aros de cebolla y arepa frita.', precio:'$90.000', etiquetas:'favorito' , imagen:'menu/picada-1200g.jpeg' },
+  { categoria:'Picadas', nombre:'Picada 1200g con chicharrón', descripcion:'La Picada de 1200g, con adición de chicharrón.', precio:'$105.000' , imagen:'menu/picada-1200g-chicharron.jpeg' },
+  { categoria:'Cortes', nombre:'Costillas San Luis', descripcion:'300g de costillas de cerdo a la parrilla, bañadas en salsa barbacoa.', precio:'$42.000', imagen:'menu/costillas-san-luis.jpeg' },
+  { categoria:'Cortes', nombre:'Churrasco Uruguayo', descripcion:'250–300g de carne madurada a la parrilla.', precio:'$48.000', imagen:'menu/churrasco-uruguayo.jpeg' },
+  { categoria:'Cortes', nombre:'Punta de Anca New York', descripcion:'230–250g de corte importado madurado, con ensalada, papa al vapor y porción de yuca.', precio:'$55.000', imagen:'menu/punta-de-anca.jpeg' },
+  { categoria:'Cortes', nombre:'Filete de Pollo', descripcion:'Filete a la parrilla con papa cocida o a la francesa, yuca o aros de cebolla, y ensalada.', precio:'$29.000', imagen:'menu/filete-de-pollo.jpeg' },
+  { categoria:'Cortes', nombre:'Alitas Miami x6', descripcion:'Seis alitas con salsa a elección (mielmostaza, BBQ, vérmelo o búfalo), con ensalada y papas fritas.', precio:'$32.000', imagen:'menu/alitas-miami.jpeg' },
+  { categoria:'Cortes', nombre:'Señor Chicharrón', descripcion:'300g de chicharrón con guacamole y patacones.', precio:'$32.000', imagen:'menu/senor-chicharron.jpeg' },
+  { categoria:'Hamburguesas', nombre:'Hamburguesa Miami', descripcion:'150g de carne Angus, mermelada de tocineta, queso cheddar y porción de papas.', precio:'$27.000', imagen:'menu/hamburguesa-miami.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Miami', descripcion:'Soda artesanal de la casa.', precio:'$15.000' , imagen:'menu/soda-miami.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Maracuyá', descripcion:'Soda artesanal sabor maracuyá.', precio:'$15.000' , imagen:'menu/soda-maracuya.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Lychee', descripcion:'Soda artesanal sabor lychee.', precio:'$15.000' , imagen:'menu/soda-lychee.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Fresa', descripcion:'Soda artesanal sabor fresa.', precio:'$15.000' , imagen:'menu/soda-fresa.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Frutos Rojos', descripcion:'Soda artesanal sabor frutos rojos.', precio:'$15.000' , imagen:'menu/soda-frutos-rojos.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Frutos Amarillos', descripcion:'Soda artesanal sabor frutos amarillos.', precio:'$15.000' , imagen:'menu/soda-frutos-amarillos.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Lulo', descripcion:'Soda artesanal sabor lulo.', precio:'$15.000' , imagen:'menu/soda-lulo.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Mandarina', descripcion:'Soda artesanal sabor mandarina.', precio:'$15.000' , imagen:'menu/soda-mandarina.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Mango Chelada', descripcion:'Soda de mango estilo chelada.', precio:'$15.000' , imagen:'menu/soda-mango-chelada.jpeg' },
+  { categoria:'Sodas Miami', nombre:'Soda Mango', descripcion:'Soda artesanal sabor mango.', precio:'$15.000' , imagen:'menu/soda-mango.jpeg' },
+  { categoria:'Café', nombre:'Americano Espresso', descripcion:'Café negro de extracción espresso.', precio:'$4.000' , imagen:'menu/americano-espresso.jpeg' },
+  { categoria:'Café', nombre:'Espresso Doble', descripcion:'Doble shot de espresso.', precio:'$6.000' , imagen:'menu/espresso-doble.jpeg' },
+  { categoria:'Café', nombre:'Latte', descripcion:'Espresso con leche vaporizada.', precio:'$6.000' , imagen:'menu/latte.jpeg' },
+  { categoria:'Café', nombre:'Capuchino', descripcion:'Espresso con leche vaporizada y espuma cremosa.', precio:'$10.000', imagen:'menu/capuchino.jpeg' },
+  { categoria:'Café', nombre:'Frapuchino', descripcion:'Café frío batido con hielo y leche.', precio:'$12.000' , imagen:'menu/frapuchino.jpeg' },
+  { categoria:'Bebidas', nombre:'Limonada de Coco', descripcion:'Limonada natural con leche de coco.', precio:'$15.000' , imagen:'menu/limonada-de-coco.jpeg' },
+  { categoria:'Bebidas', nombre:'Cerezada', descripcion:'Bebida refrescante sabor cereza.', precio:'$15.000', imagen:'menu/cerezada.jpeg' },
+  { categoria:'Bebidas', nombre:'Hierba Buena', descripcion:'Limonada con hierbabuena fresca.', precio:'$15.000' , imagen:'menu/hierba-buena.jpeg' },
+  { categoria:'Bebidas', nombre:'Limonada de Lychee', descripcion:'Limonada natural sabor lychee.', precio:'$15.000' , imagen:'menu/limonada-de-lychee.jpeg' },
+  { categoria:'Bebidas', nombre:'Limonada Natural', descripcion:'Limonada natural clásica.', precio:'$8.000' , imagen:'menu/limonada-natural.jpeg' },
+  { categoria:'Bebidas', nombre:'Gaseosas', descripcion:'Línea de gaseosas variadas.', precio:'$5.000' , imagen:'menu/gaseosas.jpeg' },
+  { categoria:'Bebidas', nombre:'Ginger', descripcion:'Ginger ale.', precio:'$6.000' , imagen:'menu/ginger.jpeg' },
+  { categoria:'Bebidas', nombre:'Gatorade', descripcion:'Bebida hidratante.', precio:'$9.000' , imagen:'menu/gatorade.jpeg' },
+  { categoria:'Bebidas', nombre:'Electrolit', descripcion:'Bebida rehidratante.', precio:'$12.000' , imagen:'menu/electrolit.jpeg' },
+  { categoria:'Bebidas', nombre:'Soda', descripcion:'Soda simple.', precio:'$6.000' , imagen:'menu/soda.jpeg' },
+  { categoria:'Bebidas', nombre:'Agua', descripcion:'Agua en botella.', precio:'$5.000' , imagen:'menu/agua.jpeg' },
+  { categoria:'Bebidas', nombre:'Jugo Hit', descripcion:'Jugo de caja Hit.', precio:'$5.000' , imagen:'menu/jugo-hit.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Maracuyá', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' , imagen:'menu/jugo-de-maracuya.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Mango', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' , imagen:'menu/jugo-de-mango.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Frutos Rojos', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' , imagen:'menu/jugo-de-frutos-rojos.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Lulo', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' , imagen:'menu/jugo-de-lulo.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jugo de Piña', descripcion:'Jugo natural en agua. También disponible en leche por $4.000 adicionales.', precio:'$8.000' , imagen:'menu/jugo-de-pina.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Limonada de Leche', descripcion:'Limonada natural preparada con leche.', precio:'$12.000' , imagen:'menu/limonada-de-leche.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jarra de Cerezada', descripcion:'Jarra para compartir, sabor cereza.', precio:'$30.000' , imagen:'menu/jarra-de-cerezada.jpeg' },
+  { categoria:'Jugos Naturales', nombre:'Jarra de Limonada', descripcion:'Jarra de limonada natural para compartir.', precio:'$25.000' , imagen:'menu/jarra-de-limonada.jpeg' },
+  { categoria:'Shots', nombre:'Semen de Pitufo', descripcion:'Shot de autor de la casa.', precio:'$15.000' , imagen:'menu/semen-de-pitufo.jpeg' },
+  { categoria:'Shots', nombre:'Sesos Miami', descripcion:'Shot de autor de la casa.', precio:'$15.000' , imagen:'menu/sesos-miami.jpeg' },
+  { categoria:'Shots', nombre:'Mamadita', descripcion:'Shot de autor de la casa.', precio:'$15.000' , imagen:'menu/mamadita.jpeg' },
+  { categoria:'Shots', nombre:'Tablazo', descripcion:'Shot de autor de la casa.', precio:'$15.000' , imagen:'menu/tablazo.jpeg' },
+  { categoria:'Cocteles', nombre:'Especiales Miami', descripcion:'Cóctel de autor de la casa.', precio:'$33.000', imagen:'menu/cerezada.jpeg' },
+  { categoria:'Cocteles', nombre:'Sangría', descripcion:'Vino tinto con frutas y cítricos.', precio:'$28.000', imagen:'menu/sangria.jpeg' }
 ];}
 </script>
 </body>
